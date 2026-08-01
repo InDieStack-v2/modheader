@@ -21,7 +21,7 @@
 
 Feel free to send pull requests to add new features to ModHeader. It will benefit everyone! That said, I reserve the rights to reject pull requests that does not seem useful, or if they add too much complexity for very little benefits.
 
-You may fork and redistribute ModHeader for a small group of friends / colleagues, but please do not impersonate ModHeader, or try to sell it for a profit. If  you use ModHeader in any commercial product, please let me know.
+ModHeader is MIT licensed (see [LICENSE](LICENSE)), so you're free to fork, redistribute, and even use it commercially. As a courtesy, please don't impersonate or rebrand a fork as "ModHeader" itself, and if you build a commercial product on top of it, a heads-up would be appreciated (though not required).
 
 ## Installation
 

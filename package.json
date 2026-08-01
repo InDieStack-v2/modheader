@@ -2,6 +2,7 @@
   "name": "modheader",
   "version": "2.3.2",
   "private": true,
+  "license": "MIT",
   "description": "Modify HTTP request and response headers (MV3 rewrite: WXT + React + TypeScript)",
   "type": "module",
   "scripts": {
