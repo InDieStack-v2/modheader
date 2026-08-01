@@ -4,6 +4,7 @@ dist/
 .wxt/
 test-results/
 playwright-report/
+__pycache__/
 *.log
 .DS_Store
 Thumbs.db
