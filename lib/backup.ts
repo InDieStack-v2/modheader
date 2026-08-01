@@ -179,6 +179,9 @@ export async function saveBackupIfChanged(profiles: Profile[]): Promise<boolean>
   if (latest && JSON.stringify(latest.profiles) === JSON.stringify(profiles)) {
     return false;
   }
-  await saveBackup(profiles);
+  // Snapshots are keyed by ms timestamp; bump past the latest one so two
+  // writes in the same millisecond don't collide and overwrite each other.
+  const now = latest ? Math.max(Date.now(), latest.timeInMs + 1) : Date.now();
+  await saveBackup(profiles, now);
   return true;
 }
