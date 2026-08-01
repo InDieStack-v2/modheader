@@ -1,38 +1,11 @@
 # ModHeader browser extension
 
-<h3 align="center">
-  ModHeader is a browser extension that allow you to modify HTTP request and response headers.
-</h3>
-<h3 align="center">
-  <img src="https://mod-header.appspot.com/android-icon-96x96.png" width="24px" alt="ModHeader" />
-  <a href="https://mod-header.appspot.com/">
-    Official Website
-  </a>
-</h3>
-<p align="center">
-  <a href="https://chrome.google.com/webstore/detail/modheader/idgpnmonknjnojddfkpgkljpfnnfcklj">
-    <img src="https://mod-header.appspot.com/images/chrome_1x.png" srcset="https://mod-header.appspot.com/images/chrome_2x.png 2x">
-  </a>
-  <a href="https://addons.mozilla.org/firefox/addon/modheader-firefox/">
-    <img src="https://mod-header.appspot.com/images/firefox_1x.png" srcset="https://mod-header.appspot.com/images/firefox_2x.png 2x">
-  </a>
-</p>
-
-## Donation
-
-If you find ModHeader useful, please consider making a donation. If you use it for your company project, please ask your company to make a monthly donation!
-
-[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=3XFKZ8PCRB8P6&currency_code=USD&amount=5&source=url)
-<a href="https://www.buymeacoffee.com/scCieVdfj">
-  <img src="https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png" alt="Buy Me A Coffee">
-</a>
-
 ## Features
 
 * Add/modify/remove request headers and response headers
 * Enable header modification based on URL/resource type
 * Add comments to header
-* Multiple different profiles
+* Multiple different profiles (compact popup with a left profile tab bar)
 * Sorting headers by name, value, or comments
 * Append value to existing request or response header
 * Export and import header

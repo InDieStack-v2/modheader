@@ -69,6 +69,23 @@ export function sortProfiles(profiles: Profile[]): Profile[] {
 }
 
 /**
+ * Return a copy of the list with the element at `from` moved to `to`
+ * (tab-bar drag-reorder, spec 002 FR-007). Indices are clamped to valid
+ * positions; `from === to` returns an equivalent copy. Input is not mutated.
+ */
+export function reorderProfiles(
+  profiles: Profile[],
+  from: number,
+  to: number,
+): Profile[] {
+  const clamp = (i: number) => Math.max(0, Math.min(profiles.length - 1, i));
+  const result = [...profiles];
+  const [moved] = result.splice(clamp(from), 1);
+  result.splice(clamp(to), 0, moved!);
+  return result;
+}
+
+/**
  * In-place migration of legacy wildcard `urlPattern` filters to `urlRegex`.
  * Port of legacy `fixProfile` (src/scripts/main.js:8-30).
  */

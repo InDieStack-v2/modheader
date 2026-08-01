@@ -81,9 +81,9 @@ test.describe('cloud backup', () => {
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
 
-    // Open the Cloud backup dialog from the sidenav and back up.
-    await popup.getByLabel('Profile menu').click();
-    await popup.getByText('Cloud backup').click();
+    // Open the Cloud backup dialog from the overflow menu and back up.
+    await popup.getByLabel('More').click();
+    await popup.getByRole('menuitem', { name: 'Cloud backup' }).click();
     await popup.getByRole('button', { name: 'Backup now' }).click();
     await expect(popup.getByText('Backup saved')).toBeVisible();
 
@@ -102,8 +102,8 @@ test.describe('cloud backup', () => {
     // second snapshot — so target the entry listing our profile by name.
     await chrome.setLocal({ profiles: [], selectedProfileIndex: 0 });
     await popup.reload();
-    await popup.getByLabel('Profile menu').click();
-    await popup.getByText('Cloud backup').click();
+    await popup.getByLabel('More').click();
+    await popup.getByRole('menuitem', { name: 'Cloud backup' }).click();
     await popup
       .getByRole('button', { name: /Backup at .*Big Profile/ })
       .click();
@@ -136,8 +136,8 @@ test.describe('cloud backup', () => {
 
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByLabel('Profile menu').click();
-    await popup.getByText('Cloud backup').click();
+    await popup.getByLabel('More').click();
+    await popup.getByRole('menuitem', { name: 'Cloud backup' }).click();
     await popup.getByRole('button', { name: /Backup at/ }).first().click();
     await expect(
       popup.getByText('Profiles successfully import'),

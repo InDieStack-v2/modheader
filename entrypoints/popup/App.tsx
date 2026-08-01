@@ -1,20 +1,18 @@
 import { useEffect, useState } from 'react';
 import {
   Alert,
-  AppBar,
   Box,
   Button,
-  Drawer,
+  Chip,
+  IconButton,
   Menu,
   MenuItem,
   Snackbar,
-  TextField,
-  Toolbar,
 } from '@mui/material';
 import { browser } from 'wxt/browser';
 import HeaderTable from '~/components/HeaderTable';
 import FilterEditor from '~/components/FilterEditor';
-import ProfileList from '~/components/ProfileList';
+import ProfileTabBar from '~/components/ProfileTabBar';
 import SettingsDialog from '~/components/SettingsDialog';
 import ImportExportDialog from '~/components/ImportExportDialog';
 import CloudBackupDialog from '~/components/CloudBackupDialog';
@@ -24,7 +22,7 @@ import {
   RESPONSE_HEADER_NAMES,
 } from '~/lib/constants';
 import { compileProfileToRules } from '~/lib/dnr';
-import { cloneProfile, createProfile } from '~/lib/profiles';
+import { cloneProfile, createProfile, reorderProfiles } from '~/lib/profiles';
 import {
   clearRuntimeState,
   getRuntimeState,
@@ -38,37 +36,6 @@ import type {
   RuntimeState,
   UnsupportedNotice,
 } from '~/lib/types';
-
-/** Rotating tips, ported from src/scripts/main.js:561-585. */
-const TIPS: { text: string; buttonText?: string; url?: string }[] = [
-  { text: 'Tip: You can switch between multiple profile' },
-  { text: 'Tip: You can export your profile to share with others' },
-  { text: 'Tip: Tab lock will apply the modification only to locked tab' },
-  { text: 'Tip: Add filter will let you use regex to limit modification' },
-  { text: 'Tip: Use the checkbox to quickly toggle header modification' },
-  { text: 'Tip: Click on the column name to sort' },
-  { text: 'Tip: Add filter also allows you to filter by resource type' },
-  { text: 'Tip: Go to profile setting to toggle comment column' },
-  { text: 'Tip: Append header value to existing one in profile setting' },
-  { text: 'Tip: Pause button will temporarily pause all modifications' },
-  { text: 'Tip: Go to cloud backup to retrieve your auto-synced profile' },
-  {
-    text: 'If you like ModHeader, please consider donating',
-    buttonText: 'Donate',
-    url: 'https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=3XFKZ8PCRB8P6&currency_code=USD&amount=5&source=url',
-  },
-  {
-    text: 'Enjoying ModHeader, leave us a review',
-    buttonText: 'Review',
-    url: navigator.userAgent.includes('Firefox')
-      ? 'https://addons.mozilla.org/firefox/addon/modheader-firefox/'
-      : 'https://chrome.google.com/webstore/detail/modheader/idgpnmonknjnojddfkpgkljpfnnfcklj',
-  },
-];
-
-function openLink(url: string): void {
-  void browser.tabs.create({ url });
-}
 
 function noticeMessage(notice: UnsupportedNotice): string {
   switch (notice.reason) {
@@ -84,21 +51,25 @@ function noticeMessage(notice: UnsupportedNotice): string {
 }
 
 /**
- * Popup root: loads profiles + runtime state, subscribes to changes, and saves
- * every edit to storage.local immediately (save-on-change, T021). Hosts pause/
- * lock controls, unsupported-header notices, and the rotating tip (T033).
+ * Popup root (spec 002 compact redesign): left profile tab bar + compact
+ * workspace. Loads profiles + runtime state, subscribes to changes, and saves
+ * every edit to storage.local immediately (save-on-change, T021). Profile
+ * deletion is immediate with an undo snackbar (FR-017).
  */
 export default function App() {
   const [state, setState] = useState<RuntimeState | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [ioMode, setIoMode] = useState<'import' | 'export' | null>(null);
   const [backupOpen, setBackupOpen] = useState(false);
+  const [undoBuffer, setUndoBuffer] = useState<{
+    profile: Profile;
+    index: number;
+  } | null>(null);
   const [snackbar, setSnackbar] = useState<{
     message: string;
     buttonText?: string;
-    url?: string;
+    kind?: 'undo-delete';
   } | null>(null);
 
   const notify = (message: string) => setSnackbar({ message });
@@ -114,9 +85,6 @@ export default function App() {
       }
       setState(loaded);
     })();
-    // Rotating tip, shown once per popup open (legacy behavior).
-    const tip = TIPS[Math.floor(Math.random() * TIPS.length)]!;
-    setSnackbar({ message: tip.text, buttonText: tip.buttonText, url: tip.url });
     return subscribeRuntimeState(setState);
   }, []);
 
@@ -144,6 +112,70 @@ export default function App() {
       state.profiles.map((p, i) => (i === profileIndex ? updated : p)),
     );
   };
+
+  // --- Profile tab bar handlers (spec 002 US2) ---
+
+  const selectProfile = (index: number) => {
+    void setRuntimeState({ selectedProfileIndex: index });
+  };
+  const addProfile = () => {
+    const profiles = [...state.profiles, createProfile(state.profiles)];
+    saveProfiles(profiles, profiles.length - 1);
+  };
+  const duplicateProfile = (index: number) => {
+    const profiles = [...state.profiles, cloneProfile(state.profiles[index]!)];
+    saveProfiles(profiles, profiles.length - 1);
+  };
+  const renameProfile = (index: number, title: string) => {
+    saveProfiles(
+      state.profiles.map((p, i) => (i === index ? { ...p, title } : p)),
+    );
+  };
+  const reorderProfile = (from: number, to: number) => {
+    const profiles = reorderProfiles(state.profiles, from, to);
+    // The active profile stays active after the move.
+    let selected = profileIndex;
+    if (profileIndex === from) {
+      selected = to;
+    } else if (from < profileIndex && to >= profileIndex) {
+      selected = profileIndex - 1;
+    } else if (from > profileIndex && to <= profileIndex) {
+      selected = profileIndex + 1;
+    }
+    saveProfiles(profiles, selected);
+  };
+  const deleteProfile = (index: number) => {
+    if (state.profiles.length <= 1) {
+      return; // FR-010: an active profile always exists.
+    }
+    const removed = state.profiles[index]!;
+    const profiles = state.profiles.filter((_, i) => i !== index);
+    let selected = profileIndex;
+    if (index === profileIndex) {
+      selected = Math.min(index, profiles.length - 1); // nearest remaining
+    } else if (index < profileIndex) {
+      selected = profileIndex - 1;
+    }
+    setUndoBuffer({ profile: removed, index });
+    saveProfiles(profiles, selected);
+    setSnackbar({ message: 'Profile deleted', buttonText: 'Undo', kind: 'undo-delete' });
+  };
+  const undoDelete = () => {
+    if (!undoBuffer) {
+      return;
+    }
+    const profiles = [...state.profiles];
+    profiles.splice(
+      Math.min(undoBuffer.index, profiles.length),
+      0,
+      undoBuffer.profile,
+    );
+    setUndoBuffer(null);
+    setSnackbar(null);
+    saveProfiles(profiles, undoBuffer.index);
+  };
+
+  // --- Global state controls ---
 
   const pause = () => {
     void setRuntimeState({ isPaused: true });
@@ -182,50 +214,64 @@ export default function App() {
   );
 
   return (
-    <Box sx={{ width: 720 }}>
-      <AppBar position="static">
-        <Toolbar variant="dense" sx={{ gap: 1 }}>
-          <Button
-            color="inherit"
-            aria-label="Profile menu"
-            onClick={() => setDrawerOpen(true)}
-          >
-            ☰
-          </Button>
-          <TextField
-            variant="standard"
-            placeholder="Profile name"
-            value={profile.title}
-            onChange={(e) => saveProfile({ ...profile, title: e.target.value })}
-            slotProps={{ input: { disableUnderline: true } }}
-            sx={{ input: { color: 'inherit' }, width: 220 }}
-          />
+    <Box sx={{ width: 720, display: 'flex' }}>
+      <ProfileTabBar
+        profiles={state.profiles}
+        selectedIndex={profileIndex}
+        onSelect={selectProfile}
+        onCreate={addProfile}
+        onDuplicate={duplicateProfile}
+        onRename={renameProfile}
+        onDelete={deleteProfile}
+        onReorder={reorderProfile}
+      />
+
+      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            minHeight: 40,
+            px: 1,
+            borderBottom: 1,
+            borderColor: 'divider',
+          }}
+        >
           <Box sx={{ flexGrow: 1 }} />
-          {state.lockedTabId == null ? (
-            <Button color="inherit" aria-label="Tab lock" onClick={lockToTab}>
-              Tab lock
-            </Button>
-          ) : (
-            <Button color="inherit" aria-label="Unlock" onClick={unlockAllTab}>
-              Unlock
-            </Button>
-          )}
           {state.isPaused ? (
-            <Button color="inherit" aria-label="Play" onClick={play}>
-              ▶
-            </Button>
+            <Chip
+              size="small"
+              color="warning"
+              label="Paused"
+              onClick={play}
+              aria-label="Play"
+            />
           ) : (
-            <Button color="inherit" aria-label="Pause" onClick={pause}>
+            <IconButton size="small" aria-label="Pause" onClick={pause}>
               ❚❚
-            </Button>
+            </IconButton>
           )}
-          <Button
-            color="inherit"
+          {state.lockedTabId != null ? (
+            <Chip
+              size="small"
+              color="info"
+              label="Tab locked"
+              onClick={unlockAllTab}
+              aria-label="Unlock"
+            />
+          ) : (
+            <IconButton size="small" aria-label="Tab lock" onClick={lockToTab}>
+              🔒
+            </IconButton>
+          )}
+          <IconButton
+            size="small"
             aria-label="More"
             onClick={(e) => setMoreAnchor(e.currentTarget)}
           >
             ⋮
-          </Button>
+          </IconButton>
           <Menu
             anchorEl={moreAnchor}
             open={moreAnchor != null}
@@ -238,29 +284,6 @@ export default function App() {
               }}
             >
               Profile settings
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                setMoreAnchor(null);
-                const profiles = state.profiles.filter(
-                  (_, i) => i !== profileIndex,
-                );
-                if (profiles.length === 0) {
-                  profiles.push(createProfile([]));
-                }
-                saveProfiles(profiles, profiles.length - 1);
-              }}
-            >
-              Delete profile
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                setMoreAnchor(null);
-                const profiles = [...state.profiles, cloneProfile(profile)];
-                saveProfiles(profiles, profiles.length - 1);
-              }}
-            >
-              Clone profile
             </MenuItem>
             <MenuItem
               onClick={() => {
@@ -278,92 +301,49 @@ export default function App() {
             >
               Import profile
             </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setMoreAnchor(null);
+                setBackupOpen(true);
+              }}
+            >
+              Cloud backup
+            </MenuItem>
           </Menu>
-        </Toolbar>
-      </AppBar>
+        </Box>
 
-      {state.isPaused && (
-        <Alert severity="warning" sx={{ borderRadius: 0 }}>
-          ModHeader is paused{' '}
-          <Button size="small" onClick={play}>
-            Click to unpause
-          </Button>
-        </Alert>
-      )}
-      {!state.isPaused && state.lockedTabId != null && (
-        <Alert severity="info" sx={{ borderRadius: 0 }}>
-          Tab lock is active{' '}
-          <Button size="small" onClick={unlockAllTab}>
-            Click to unlock tab
-          </Button>
-        </Alert>
-      )}
-      {unsupported.map((notice, i) => (
-        <Alert severity="warning" sx={{ borderRadius: 0 }} key={i}>
-          {noticeMessage(notice)}
-        </Alert>
-      ))}
+        {unsupported.map((notice, i) => (
+          <Alert severity="warning" sx={{ borderRadius: 0, py: 0 }} key={i}>
+            {noticeMessage(notice)}
+          </Alert>
+        ))}
 
-      <Box sx={{ p: 2 }}>
-        <FilterEditor
-          filters={profile.filters}
-          activeTabUrl={state.activeTabUrl}
-          onChange={(filters) => saveProfile({ ...profile, filters })}
-        />
-        <HeaderTable
-          title="Request Headers"
-          headers={profile.headers}
-          headerNames={REQUEST_HEADER_NAMES}
-          hideComment={profile.hideComment !== false}
-          onChange={(headers: HeaderRule[]) =>
-            saveProfile({ ...profile, headers })
-          }
-        />
-        <HeaderTable
-          title="Response Headers"
-          headers={profile.respHeaders}
-          headerNames={RESPONSE_HEADER_NAMES}
-          hideComment={profile.hideComment !== false}
-          onChange={(respHeaders: HeaderRule[]) =>
-            saveProfile({ ...profile, respHeaders })
-          }
-        />
-      </Box>
-
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        <ProfileList
-          profiles={state.profiles}
-          selectedIndex={profileIndex}
-          onSelect={(index) => {
-            void setRuntimeState({ selectedProfileIndex: index });
-            setDrawerOpen(false);
-          }}
-          onCreate={() => {
-            const profiles = [...state.profiles, createProfile(state.profiles)];
-            saveProfiles(profiles, profiles.length - 1);
-            setDrawerOpen(false);
-          }}
-          onClone={(index) => {
-            const clone = cloneProfile(state.profiles[index]!);
-            const profiles = [...state.profiles, clone];
-            saveProfiles(profiles, profiles.length - 1);
-            setDrawerOpen(false);
-          }}
-          onDelete={(index) => {
-            const profiles = state.profiles.filter((_, i) => i !== index);
-            if (profiles.length === 0) {
-              profiles.push(createProfile([]));
+        <Box sx={{ px: 1, py: 0.5 }}>
+          <FilterEditor
+            filters={profile.filters}
+            activeTabUrl={state.activeTabUrl}
+            onChange={(filters) => saveProfile({ ...profile, filters })}
+          />
+          <HeaderTable
+            title="Request Headers"
+            headers={profile.headers}
+            headerNames={REQUEST_HEADER_NAMES}
+            hideComment={profile.hideComment !== false}
+            onChange={(headers: HeaderRule[]) =>
+              saveProfile({ ...profile, headers })
             }
-            saveProfiles(profiles, profiles.length - 1);
-            setDrawerOpen(false);
-          }}
-          onOpenCloudBackup={() => {
-            setDrawerOpen(false);
-            setBackupOpen(true);
-          }}
-          openLink={openLink}
-        />
-      </Drawer>
+          />
+          <HeaderTable
+            title="Response Headers"
+            headers={profile.respHeaders}
+            headerNames={RESPONSE_HEADER_NAMES}
+            hideComment={profile.hideComment !== false}
+            onChange={(respHeaders: HeaderRule[]) =>
+              saveProfile({ ...profile, respHeaders })
+            }
+          />
+        </Box>
+      </Box>
 
       <SettingsDialog
         open={settingsOpen}
@@ -389,17 +369,22 @@ export default function App() {
 
       <Snackbar
         open={snackbar != null}
-        autoHideDuration={snackbar?.url ? null : 3000}
-        onClose={() => setSnackbar(null)}
+        autoHideDuration={snackbar?.kind === 'undo-delete' ? 5000 : 3000}
+        onClose={() => {
+          setSnackbar(null);
+          setUndoBuffer(null);
+        }}
         message={snackbar?.message}
         action={
-          snackbar?.url ? (
+          snackbar?.kind === 'undo-delete' ? (
             <Button
               color="inherit"
               size="small"
               onClick={() => {
-                openLink(snackbar.url!);
-                setSnackbar(null);
+                // Resolved at click time so undoDelete closes over the
+                // CURRENT undoBuffer/state, not the snackbar's creation
+                // render (which would see a null undoBuffer).
+                undoDelete();
               }}
             >
               {snackbar.buttonText}

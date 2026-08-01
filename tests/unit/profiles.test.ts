@@ -3,6 +3,7 @@ import {
   cloneProfile,
   createProfile,
   fixLegacyProfile,
+  reorderProfiles,
   sortProfiles,
   wildcardToRegex,
 } from '~/lib/profiles';
@@ -137,5 +138,54 @@ describe('fixLegacyProfile', () => {
   it('tolerates a profile without filters', () => {
     const profile = {} as Profile;
     expect(() => fixLegacyProfile(profile)).not.toThrow();
+  });
+});
+
+describe('reorderProfiles (spec 002 data-model)', () => {
+  const named = (...titles: string[]): Profile[] =>
+    titles.map((title) => ({ title }) as Profile);
+
+  it('moves an element to a later position', () => {
+    const result = reorderProfiles(named('a', 'b', 'c', 'd'), 0, 2);
+    expect(result.map((p) => p.title)).toEqual(['b', 'c', 'a', 'd']);
+  });
+
+  it('moves an element to an earlier position', () => {
+    const result = reorderProfiles(named('a', 'b', 'c', 'd'), 3, 1);
+    expect(result.map((p) => p.title)).toEqual(['a', 'd', 'b', 'c']);
+  });
+
+  it('moves to the start and to the end', () => {
+    expect(reorderProfiles(named('a', 'b', 'c'), 1, 0).map((p) => p.title)).toEqual([
+      'b',
+      'a',
+      'c',
+    ]);
+    expect(reorderProfiles(named('a', 'b', 'c'), 1, 2).map((p) => p.title)).toEqual([
+      'a',
+      'c',
+      'b',
+    ]);
+  });
+
+  it('returns an equivalent copy when from === to', () => {
+    const input = named('a', 'b');
+    const result = reorderProfiles(input, 1, 1);
+    expect(result.map((p) => p.title)).toEqual(['a', 'b']);
+    expect(result).not.toBe(input);
+  });
+
+  it('clamps out-of-range indices', () => {
+    expect(reorderProfiles(named('a', 'b', 'c'), -5, 99).map((p) => p.title)).toEqual([
+      'b',
+      'c',
+      'a',
+    ]);
+  });
+
+  it('does not mutate the input array', () => {
+    const input = named('a', 'b', 'c');
+    reorderProfiles(input, 0, 2);
+    expect(input.map((p) => p.title)).toEqual(['a', 'b', 'c']);
   });
 });

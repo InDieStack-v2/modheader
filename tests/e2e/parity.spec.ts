@@ -268,3 +268,72 @@ test.describe('US2 parity', () => {
     expect((state.profiles as Profile[])[0]!.title).toBe('E2E Imported');
   });
 });
+
+test.describe('compact layout (spec 002, US1)', () => {
+  test('popup opens directly into the compact workspace', async ({
+    context,
+    extensionId,
+  }) => {
+    const chrome = chromeIn(await backgroundWorker(context));
+    await chrome.setLocal({
+      profiles: [
+        profileWith({
+          title: 'Compact',
+          headers: Array.from({ length: 6 }, (_, i) => ({
+            enabled: true,
+            name: `X-Row-${i}`,
+            value: `${i}`,
+          })),
+        }),
+      ],
+      selectedProfileIndex: 0,
+    });
+
+    const popup = await context.newPage();
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+
+    // Workspace is visible immediately — no drawer or extra step (FR-001/002).
+    await expect(popup.getByText('Request Headers')).toBeVisible();
+    await expect(popup.getByText('Response Headers')).toBeVisible();
+
+    // No rotating tips or promotional prompts in the default view (FR-013).
+    // Wait briefly so a would-be tip snackbar has time to mount (plain tips
+    // auto-hide after 3s, so a retrying assertion would be flaky).
+    await popup.waitForTimeout(500);
+    expect(
+      await popup.getByText(/Tip:|consider donating|leave us a review/i).count(),
+    ).toBe(0);
+
+    // At least 5 header rows visible without scrolling (SC-003).
+    const bodyRows = popup.locator('tbody tr');
+    await expect(bodyRows.first()).toBeVisible();
+    expect(await bodyRows.count()).toBeGreaterThanOrEqual(5);
+    for (const row of await bodyRows.all()) {
+      await expect(row).toBeInViewport();
+    }
+  });
+
+  test('popup theme follows the browser color scheme', async ({
+    context,
+    extensionId,
+  }) => {
+    const chrome = chromeIn(await backgroundWorker(context));
+    await chrome.setLocal({
+      profiles: [profileWith({})],
+      selectedProfileIndex: 0,
+    });
+
+    const popup = await context.newPage();
+    const bodyBg = () =>
+      popup.evaluate(() => getComputedStyle(document.body).backgroundColor);
+
+    await popup.emulateMedia({ colorScheme: 'dark' });
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+    await expect(popup.getByText('Request Headers')).toBeVisible();
+    // MUI dark mode background (#121212).
+    expect(await bodyBg()).toBe('rgb(18, 18, 18)');
+
+    await popup.emulateMedia({ colorScheme: 'light' });
+    await expect.poll(bodyBg).toBe('rgb(255, 255, 255)');
+  });
+});

@@ -88,8 +88,8 @@ export default function HeaderTable({
   );
 
   return (
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
+    <Box sx={{ mb: 1 }}>
+      <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
         {title}
       </Typography>
       <Table size="small">

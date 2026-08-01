@@ -93,8 +93,8 @@ export default function FilterEditor({
   };
 
   return (
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
+    <Box sx={{ mb: 1 }}>
+      <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
         Filters
       </Typography>
       {filters.map((filter, index) => (
