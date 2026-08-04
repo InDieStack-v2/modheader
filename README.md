@@ -25,10 +25,6 @@ ModHeader is MIT licensed (see [LICENSE](LICENSE)), so you're free to fork, redi
 
 ## Installation
 
-Install ModHeader from the
-[Chrome Web Store](https://chrome.google.com/webstore/detail/modheader/idgpnmonknjnojddfkpgkljpfnnfcklj)
-or [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/modheader-firefox/).
-
 To load a development build instead: `npm install`, then `npm run build`
 (or `npm run build:firefox`) and load the produced `.output/chrome-mv3`
 (`.output/firefox-mv3`) directory as an unpacked extension. `npm run zip`
