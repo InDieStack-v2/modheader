@@ -85,7 +85,23 @@ export default function App() {
       }
       setState(loaded);
     })();
-    return subscribeRuntimeState(setState);
+    // The popup is the only writer of `profiles`/`selectedProfileIndex`, so
+    // storage echoes of our own edits are ignored — applying them would race
+    // with typing and reset the cursor/selection/undo stack of the controlled
+    // inputs. Other keys (isPaused, lockedTabId, activeTabUrl) still flow in.
+    return subscribeRuntimeState((fresh) => {
+      setState((prev) => {
+        if (!prev) {
+          return fresh;
+        }
+        const merged: RuntimeState = {
+          ...fresh,
+          profiles: prev.profiles,
+          selectedProfileIndex: prev.selectedProfileIndex,
+        };
+        return JSON.stringify(merged) === JSON.stringify(prev) ? prev : merged;
+      });
+    });
   }, []);
 
   if (!state) {
@@ -98,8 +114,20 @@ export default function App() {
   const profile = state.profiles[profileIndex];
 
   // T021: every edit is written straight through to storage.local so the
-  // background recompiles DNR rules immediately.
+  // background recompiles DNR rules immediately. Local state is updated
+  // optimistically first: controlled inputs must see their own edits in the
+  // same render, or the storage round trip resets cursor/selection/undo.
   const saveProfiles = (profiles: Profile[], selectedIndex?: number) => {
+    setState((prev) =>
+      prev
+        ? {
+            ...prev,
+            profiles,
+            selectedProfileIndex:
+              selectedIndex ?? prev.selectedProfileIndex,
+            }
+        : prev,
+    );
     void (async () => {
       await setProfiles(profiles);
       if (selectedIndex !== undefined) {
@@ -116,6 +144,10 @@ export default function App() {
   // --- Profile tab bar handlers (spec 002 US2) ---
 
   const selectProfile = (index: number) => {
+    // Optimistic: the subscription deliberately ignores our own echoes.
+    setState((prev) =>
+      prev ? { ...prev, selectedProfileIndex: index } : prev,
+    );
     void setRuntimeState({ selectedProfileIndex: index });
   };
   const addProfile = () => {
