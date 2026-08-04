@@ -279,6 +279,14 @@ export default function App() {
           >
             {profile.title}
           </Typography>
+          <Typography
+            variant="caption"
+            noWrap
+            color="text.secondary"
+            sx={{ flexShrink: 0 }}
+          >
+            v{browser.runtime.getManifest().version}
+          </Typography>
           <Box sx={{ flexGrow: 1 }} />
           {state.isPaused ? (
             <Chip
