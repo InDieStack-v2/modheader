@@ -93,14 +93,14 @@ export default function FilterEditor({
   };
 
   return (
-    <Box sx={{ mb: 1 }}>
-      <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+    <Box sx={{ mb: 0.5 }}>
+      <Typography variant="subtitle2" sx={{ mb: 0.25, lineHeight: 1.4 }}>
         Filters
       </Typography>
       {filters.map((filter, index) => (
         <Box
           key={index}
-          sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}
         >
           <Checkbox
             size="small"
@@ -109,7 +109,7 @@ export default function FilterEditor({
               updateFilter(index, { ...filter, enabled: e.target.checked })
             }
           />
-          <FormControl size="small" sx={{ minWidth: 130 }}>
+          <FormControl size="small" sx={{ minWidth: 110 }}>
             <InputLabel>Type</InputLabel>
             <Select
               label="Type"
@@ -137,6 +137,7 @@ export default function FilterEditor({
               onChange={(e) =>
                 updateFilter(index, { ...filter, urlRegex: e.target.value })
               }
+              sx={{ '& .MuiInputBase-input': { py: 0.25, px: 0.75 } }}
             />
           )}
           {filter.type === 'types' && (

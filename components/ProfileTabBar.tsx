@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
+  Avatar,
   Box,
-  Button,
+  IconButton,
   Menu,
   MenuItem,
+  Popover,
   Tab,
   Tabs,
   TextField,
@@ -11,11 +13,12 @@ import {
 import type { Profile } from '~/lib/types';
 
 /**
- * Vertical profile tab bar (spec 002 US2): one tab per profile, exactly one
- * active. Inline rename (double-click / context menu), duplicate, delete
- * (blocked for the last profile, FR-010), HTML5 drag-reorder (research R1),
- * and MUI roving-tabindex arrow-key navigation (FR-016). Contract:
- * specs/002-compact-ui-redesign/contracts/ui-components.md
+ * Compact profile rail: one avatar badge per profile (initials), exactly one
+ * active. Hover shows the full title; double-click / context menu renames via
+ * a popover editor, duplicate, delete (blocked for the last profile, FR-010),
+ * HTML5 drag-reorder (research R1), and MUI roving-tabindex arrow-key
+ * navigation (FR-016). The Tab's accessible name stays the full title via
+ * aria-label, so tests and screen readers still see profile names.
  */
 export interface ProfileTabBarProps {
   profiles: Profile[];
@@ -31,6 +34,18 @@ export interface ProfileTabBarProps {
   onReorder: (from: number, to: number) => void;
 }
 
+/** Up to two uppercase initials for the avatar badge. */
+function initials(title: string): string {
+  const words = title.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    return '?';
+  }
+  return words
+    .slice(0, 2)
+    .map((word) => word[0]!.toUpperCase())
+    .join('');
+}
+
 export default function ProfileTabBar({
   profiles,
   selectedIndex,
@@ -44,18 +59,32 @@ export default function ProfileTabBar({
   const [menu, setMenu] = useState<{ anchor: HTMLElement; index: number } | null>(
     null,
   );
-  const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
+  const [rename, setRename] = useState<{
+    anchor: HTMLElement;
+    index: number;
+  } | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  // The rename popover commits on backdrop-close (blur-commit, legacy
+  // behavior); Escape sets this flag so the close handler skips the commit.
+  const renameCancelled = useRef(false);
 
-  const commitRename = (index: number, title: string) => {
-    setRenamingIndex(null);
-    onRename(index, title);
+  const openRename = (index: number, anchor: HTMLElement) => {
+    renameCancelled.current = false;
+    setRenameValue(profiles[index]?.title ?? '');
+    setRename({ index, anchor });
+  };
+  const commitRename = () => {
+    if (rename && !renameCancelled.current) {
+      onRename(rename.index, renameValue);
+    }
+    setRename(null);
   };
 
   return (
     <Box
       sx={{
-        width: 160,
+        width: 48,
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
@@ -75,52 +104,30 @@ export default function ProfileTabBar({
           overflowY: 'auto',
           maxHeight: '100vh',
           alignItems: 'stretch',
+          '& .MuiTabs-indicator': { width: 2 },
         }}
       >
         {profiles.map((profile, index) => (
           <Tab
             key={index}
             value={index}
-            title={profile.title} // full name on hover (long titles truncate)
+            title={profile.title} // full name on hover
+            aria-label={profile.title}
             label={
-              renamingIndex === index ? (
-                // Rendered as the Tab label — NOT as a Tabs child — because
-                // MUI Tabs injects `value={index}` into direct children,
-                // which would hijack a sibling TextField's value prop.
-                <TextField
-                  size="small"
-                  autoFocus
-                  defaultValue={profile.title}
-                  slotProps={{ htmlInput: { 'aria-label': 'Rename profile' } }}
-                  onClick={(e) => e.stopPropagation()}
-                  onBlur={(e) => commitRename(index, e.target.value)}
-                  onKeyDown={(e) => {
-                    e.stopPropagation();
-                    if (e.key === 'Enter') {
-                      commitRename(index, (e.target as HTMLInputElement).value);
-                    } else if (e.key === 'Escape') {
-                      setRenamingIndex(null);
-                    }
-                  }}
-                  sx={{ width: '100%' }}
-                />
-              ) : (
-                <Box
-                  component="span"
-                  sx={{
-                    display: 'block',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {profile.title}
-                </Box>
-              )
+              <Avatar
+                sx={{
+                  width: 28,
+                  height: 28,
+                  fontSize: 12,
+                  bgcolor:
+                    index === selectedIndex ? 'primary.main' : undefined,
+                }}
+              >
+                {initials(profile.title)}
+              </Avatar>
             }
-            draggable={renamingIndex !== index}
-            onDoubleClick={() => setRenamingIndex(index)}
+            draggable
+            onDoubleClick={(e) => openRename(index, e.currentTarget)}
             onContextMenu={(e) => {
               e.preventDefault();
               setMenu({ anchor: e.currentTarget, index });
@@ -134,30 +141,34 @@ export default function ProfileTabBar({
               setDragIndex(null);
             }}
             sx={{
-              minHeight: 36,
-              py: 0,
-              px: 1,
-              textTransform: 'none',
-              alignItems: 'flex-start',
+              minHeight: 40,
+              minWidth: 0,
+              p: 0.5,
             }}
           />
         ))}
       </Tabs>
-      <Button size="small" onClick={onCreate} sx={{ mx: 0.5, mb: 0.5 }}>
-        + New profile
-      </Button>
+      <IconButton
+        size="small"
+        aria-label="New profile"
+        onClick={onCreate}
+        sx={{ m: 0.5 }}
+      >
+        +
+      </IconButton>
       <Menu
         anchorEl={menu?.anchor}
         open={menu != null}
         onClose={() => setMenu(null)}
         // Don't let the Menu hand focus back to the anchor tab on close —
-        // it would instantly blur (and commit) the inline rename field.
+        // with selectionFollowsFocus that would re-select the anchor,
+        // overriding Duplicate/Delete's selection of another profile.
         disableRestoreFocus
       >
         <MenuItem
           onClick={() => {
             if (menu) {
-              setRenamingIndex(menu.index);
+              openRename(menu.index, menu.anchor);
             }
             setMenu(null);
           }}
@@ -186,6 +197,37 @@ export default function ProfileTabBar({
           Delete
         </MenuItem>
       </Menu>
+      <Popover
+        anchorEl={rename?.anchor ?? null}
+        open={rename != null}
+        onClose={commitRename}
+        // Escape is stopped at the TextField (below) so it cancels instead
+        // of committing; backdrop clicks close and commit (blur-commit).
+        // Focus must not return to the anchor tab — selectionFollowsFocus
+        // would turn a rename into a profile switch.
+        disableRestoreFocus
+        anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'center', horizontal: 'left' }}
+      >
+        <Box sx={{ p: 0.5 }}>
+          <TextField
+            size="small"
+            autoFocus
+            value={renameValue}
+            slotProps={{ htmlInput: { 'aria-label': 'Rename profile' } }}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter') {
+                commitRename();
+              } else if (e.key === 'Escape') {
+                renameCancelled.current = true;
+                setRename(null);
+              }
+            }}
+          />
+        </Box>
+      </Popover>
     </Box>
   );
 }

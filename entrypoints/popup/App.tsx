@@ -8,6 +8,7 @@ import {
   Menu,
   MenuItem,
   Snackbar,
+  Typography,
 } from '@mui/material';
 import { browser } from 'wxt/browser';
 import HeaderTable from '~/components/HeaderTable';
@@ -264,12 +265,20 @@ export default function App() {
             display: 'flex',
             alignItems: 'center',
             gap: 0.5,
-            minHeight: 40,
-            px: 1,
+            minHeight: 32,
+            px: 0.5,
             borderBottom: 1,
             borderColor: 'divider',
           }}
         >
+          <Typography
+            variant="body2"
+            noWrap
+            title={profile.title}
+            sx={{ px: 0.5, fontWeight: 500 }}
+          >
+            {profile.title}
+          </Typography>
           <Box sx={{ flexGrow: 1 }} />
           {state.isPaused ? (
             <Chip
@@ -350,7 +359,7 @@ export default function App() {
           </Alert>
         ))}
 
-        <Box sx={{ px: 1, py: 0.5 }}>
+        <Box sx={{ px: 1, py: 0.25 }}>
           <FilterEditor
             filters={profile.filters}
             activeTabUrl={state.activeTabUrl}

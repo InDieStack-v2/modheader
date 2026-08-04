@@ -87,12 +87,21 @@ export default function HeaderTable({
     </Link>
   );
 
+  // Dense inputs: shrink the default small-size field padding so rows stay
+  // compact (minimalist popup redesign).
+  const denseField = {
+    '& .MuiInputBase-input': { py: 0.25, px: 0.75 },
+  } as const;
+
   return (
-    <Box sx={{ mb: 1 }}>
-      <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+    <Box sx={{ mb: 0.5 }}>
+      <Typography variant="subtitle2" sx={{ mb: 0.25, lineHeight: 1.4 }}>
         {title}
       </Typography>
-      <Table size="small">
+      <Table
+        size="small"
+        sx={{ '& .MuiTableCell-root': { py: 0.25, px: 0.5 } }}
+      >
         <TableHead>
           <TableRow>
             <TableCell padding="checkbox" />
@@ -126,7 +135,21 @@ export default function HeaderTable({
                   renderInput={(params) => (
                     <TextField {...params} placeholder="Header name" size="small" />
                   )}
-                  sx={{ minWidth: 180 }}
+                  sx={{
+                    minWidth: 150,
+                    // Match the dense value/comment inputs exactly (2px/6px
+                    // input padding). MUI's small-size autocomplete rules use
+                    // attribute selectors, so chain classes to outrank them;
+                    // keep the 39px right padding that makes room for the
+                    // dropdown arrow.
+                    '& .MuiAutocomplete-inputRoot.MuiInputBase-sizeSmall': {
+                      pt: 0,
+                      pb: 0,
+                      pl: 0,
+                    },
+                    '& .MuiAutocomplete-inputRoot.MuiInputBase-sizeSmall .MuiAutocomplete-input':
+                      { py: 0.25, px: 0.75 },
+                  }}
                 />
               </TableCell>
               <TableCell>
@@ -136,6 +159,7 @@ export default function HeaderTable({
                   placeholder="Value (empty = remove header)"
                   value={row.value}
                   onChange={(e) => updateRow(index, { value: e.target.value })}
+                  sx={denseField}
                 />
               </TableCell>
               {!hideComment && (
@@ -146,6 +170,7 @@ export default function HeaderTable({
                     placeholder="Comment"
                     value={row.comment ?? ''}
                     onChange={(e) => updateRow(index, { comment: e.target.value })}
+                    sx={denseField}
                   />
                 </TableCell>
               )}
@@ -158,7 +183,7 @@ export default function HeaderTable({
           ))}
         </TableBody>
       </Table>
-      <Button size="small" onClick={addRow} sx={{ mt: 0.5 }}>
+      <Button size="small" onClick={addRow} sx={{ mt: 0.25 }}>
         + Add
       </Button>
     </Box>

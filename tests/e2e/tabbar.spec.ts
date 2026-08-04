@@ -3,9 +3,10 @@ import { backgroundWorker, chromeIn, profileWith } from './helpers';
 import type { Profile } from '../../lib/types';
 
 /**
- * Profile tab bar e2e (spec 002, US2): one-click switching, create, inline
- * rename, duplicate, drag-reorder, delete-with-undo, last-profile guard, and
- * keyboard navigation — driven through the popup UI against storage state.
+ * Profile rail e2e: one-click switching, create, popover rename, duplicate,
+ * drag-reorder, delete-with-undo, last-profile guard, and keyboard navigation
+ * — driven through the popup UI against storage state. Avatars show initials;
+ * each tab's accessible name is the full profile title (aria-label).
  */
 
 function seedProfiles(...titles: string[]): Profile[] {
@@ -73,7 +74,7 @@ test.describe('profile tab bar (spec 002, US2)', () => {
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
 
-    await popup.getByRole('button', { name: '+ New profile' }).click();
+    await popup.getByRole('button', { name: 'New profile' }).click();
     await expect(popup.getByRole('tab')).toHaveCount(3);
     await expect
       .poll(async () => {
@@ -194,7 +195,8 @@ test.describe('profile tab bar (spec 002, US2)', () => {
     await reopened.goto(`chrome-extension://${extensionId}/popup.html`);
     const tabs = reopened.getByRole('tab');
     await expect(tabs).toHaveCount(3);
-    await expect(tabs.nth(0)).toHaveText('Beta');
+    // Avatar badges render initials only; the accessible name carries the title.
+    await expect(tabs.nth(0)).toHaveAttribute('aria-label', 'Beta');
     await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true');
   });
 
