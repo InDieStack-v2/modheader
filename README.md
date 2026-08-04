@@ -13,10 +13,6 @@
 * Cloud backup
 * Tab locking!
 
-## Screenshots
-
-<img src="https://mod-header.appspot.com/images/ss1.png">
-
 ## Forking and contribution
 
 Feel free to send pull requests to add new features to ModHeader. It will benefit everyone! That said, I reserve the rights to reject pull requests that does not seem useful, or if they add too much complexity for very little benefits.
