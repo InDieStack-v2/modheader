@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises';
 import { defineConfig } from 'wxt';
 
 // See https://wxt.dev/api/config.html
@@ -11,6 +12,14 @@ export default defineConfig({
       '../dist/{{name}}-{{packageVersion}}-sources{{modeSuffix}}.zip',
     // Keep previously zipped artifacts out of the sources zip.
     excludeSources: ['dist/**'],
+  },
+  hooks: {
+    // WXT doesn't create the zip output directory; dist/ is gitignored, so it
+    // doesn't exist on fresh checkouts (CI). The extension zip always runs
+    // before the sources zip, so this single hook covers both.
+    'zip:extension:start': async () => {
+      await mkdir('dist', { recursive: true });
+    },
   },
   // Extension pages share chunks across worlds (popup, offscreen doc), which
   // makes Chromium log benign "cross-world extension resource mismatch"
