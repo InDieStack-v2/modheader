@@ -44,7 +44,7 @@ npm run dev          # Chrome dev build with live reload
 npm run dev:firefox  # Firefox dev build with live reload
 npm run build        # production build → .output/chrome-mv3
 npm run build:firefox# production build → .output/firefox-mv3
-npm run zip          # store-ready zips for both browsers → .output/*.zip
+npm run zip          # store-ready zips for both browsers → dist/*.zip
 npm run test         # unit tests (vitest)
 npm run test:e2e     # end-to-end tests (playwright; requires a prior build)
 npm run lint         # eslint

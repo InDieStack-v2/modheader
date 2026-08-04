@@ -3,6 +3,15 @@ import { defineConfig } from 'wxt';
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
+  zip: {
+    // Output release artifacts to dist/ instead of the default .output/.
+    artifactTemplate:
+      '../dist/{{name}}-{{packageVersion}}-{{browser}}{{modeSuffix}}.zip',
+    sourcesTemplate:
+      '../dist/{{name}}-{{packageVersion}}-sources{{modeSuffix}}.zip',
+    // Keep previously zipped artifacts out of the sources zip.
+    excludeSources: ['dist/**'],
+  },
   // Extension pages share chunks across worlds (popup, offscreen doc), which
   // makes Chromium log benign "cross-world extension resource mismatch"
   // preload warnings. Preloading buys nothing at this bundle size — disable it.
