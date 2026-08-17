@@ -3,6 +3,7 @@ import { createProfile } from '~/lib/profiles';
 import {
   overlayHeaderRules,
   pickEntryForBody,
+  profileHasEnabledRules,
   profileWouldPatch,
   sanitizeLogUrl,
 } from '~/lib/request-match';
@@ -46,6 +47,20 @@ describe('profileWouldPatch', () => {
     const profile = createProfile([]);
     profile.headers = [{ enabled: false, name: 'X-Test', value: '1' }];
     expect(profileWouldPatch(profile, base)).toBe(false);
+  });
+
+  it('profileHasEnabledRules ignores disabled and empty names', () => {
+    const profile = createProfile([]);
+    expect(profileHasEnabledRules(profile)).toBe(false);
+    profile.headers = [{ enabled: false, name: 'X-Test', value: '1' }];
+    expect(profileHasEnabledRules(profile)).toBe(false);
+    profile.headers = [{ enabled: true, name: '   ', value: '1' }];
+    expect(profileHasEnabledRules(profile)).toBe(false);
+    profile.headers = [{ enabled: true, name: 'X-Test', value: '1' }];
+    expect(profileHasEnabledRules(profile)).toBe(true);
+    profile.respHeaders = [{ enabled: true, name: 'X-Out', value: '1' }];
+    profile.headers = [];
+    expect(profileHasEnabledRules(profile)).toBe(true);
   });
 
   it('matches empty filters (applies everywhere)', () => {

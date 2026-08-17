@@ -19,6 +19,17 @@ function buildTheme(mode: 'light' | 'dark') {
       // Compact density (spec 002 US1): slightly smaller base type.
       fontSize: 13,
     },
+    components: {
+      MuiSnackbarContent: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            backgroundColor: theme.palette.background.paper,
+            color: theme.palette.text.primary,
+            border: `1px solid ${theme.palette.divider}`,
+          }),
+        },
+      },
+    },
   });
 }
 

@@ -34,6 +34,14 @@ function hasEnabledPatchRule(rows: HeaderRule[] | undefined): boolean {
   });
 }
 
+/** True when this profile would install at least one request or response patch. */
+export function profileHasEnabledRules(profile: Profile): boolean {
+  return (
+    hasEnabledPatchRule(profile.headers) ||
+    hasEnabledPatchRule(profile.respHeaders)
+  );
+}
+
 /**
  * True when this profile would install at least one DNR modifyHeaders rule
  * that applies to the request (same grouping as compileProfileToRules).
@@ -57,10 +65,7 @@ export function profileWouldPatch(
   ) {
     return false;
   }
-  if (
-    !hasEnabledPatchRule(profile.headers) &&
-    !hasEnabledPatchRule(profile.respHeaders)
-  ) {
+  if (!profileHasEnabledRules(profile)) {
     return false;
   }
 

@@ -12,6 +12,8 @@ import ResourceTypeToggles from './ResourceTypeToggles';
 export interface RequestLogListProps {
   profileIndex: number;
   recording: boolean;
+  /** False when paused or the profile has no enabled header rules. */
+  canRecord?: boolean;
   entries: RequestLogEntry[];
   typeFilter: string[];
   onToggleRecording: () => void;
@@ -56,6 +58,7 @@ function formatTime(startedAt: number): string {
 export default function RequestLogList({
   profileIndex,
   recording,
+  canRecord = true,
   entries,
   typeFilter,
   onToggleRecording,
@@ -85,6 +88,7 @@ export default function RequestLogList({
           size="small"
           variant={recording ? 'outlined' : 'contained'}
           onClick={onToggleRecording}
+          disabled={!recording && !canRecord}
           aria-label={recording ? 'Pause recording' : 'Start recording'}
         >
           {recording ? 'Pause' : 'Start'}
@@ -98,7 +102,11 @@ export default function RequestLogList({
           Clear
         </Button>
         <Typography variant="caption" color="text.secondary">
-          {recording ? 'Recording patched requests' : 'Recording paused'}
+          {recording
+            ? 'Recording patched requests'
+            : canRecord
+              ? 'Recording paused'
+              : 'Off while nothing is being modified'}
         </Typography>
       </Box>
 
@@ -117,7 +125,9 @@ export default function RequestLogList({
         <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
           {recording
             ? 'Matching patched requests will appear here.'
-            : 'Start recording to capture patched requests.'}
+            : canRecord
+              ? 'Start recording to capture patched requests.'
+              : 'Recording stays off while nothing is being modified.'}
         </Typography>
       ) : visible.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>

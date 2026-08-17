@@ -32,6 +32,7 @@ On the Logs tab label, a visual mark when that profile is recording (dot or coun
 export interface RequestLogListProps {
   profileIndex: number;
   recording: boolean;
+  canRecord?: boolean;
   entries: RequestLogEntry[];
   onToggleRecording: () => void;
   onClear: () => void;
@@ -40,8 +41,9 @@ export interface RequestLogListProps {
 
 Behavioral contract:
 
-- Start/pause control reflects `recording` (FR-006, FR-007).
+- Start/pause control reflects `recording` (FR-006, FR-007). Start is disabled when `canRecord` is false (global pause or no enabled header rules).
 - Empty + paused → “Start recording to capture patched requests.”
+- Empty + cannot record → “Recording stays off while nothing is being modified.”
 - Empty + recording → “Matching patched requests will appear here.”
 - Rows newest first; list scrolls inside the tab.
 - Each **collapsed** row shows: time, method, truncated URL, resource type, status, copy-cURL action (FR-024). Optional one-line summary of profile-applied header names.

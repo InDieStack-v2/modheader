@@ -52,4 +52,4 @@ npm run test:e2e      # includes tests/e2e/request-log.spec.ts
 ## Cross-check
 
 - Export / cloud backup a profile while a log exists. Restore elsewhere. **Expected**: no log entries and recording off (FR-018).
-- Global pause while recording. **Expected**: flag stays on, no new rows, Paused and Recording chips both visible and distinct.
+- Global pause while recording. **Expected**: recording turns off, existing rows remain, no new rows, only the Paused chip stays (Recording is gone). Unpause does not restart recording.

@@ -9,6 +9,12 @@ Internal contracts between popup, background, and the optional page hook. No pub
 ```ts
 export function getRequestLogState(): Promise<RequestLogState>;
 export function setRecording(profileIndex: number, on: boolean): Promise<void>;
+export function stopAllRecording(): Promise<void>;
+export function syncRecordingWithPatching(input: {
+  paused: boolean;
+  selectedIndex: number;
+  selectedHasRules: boolean;
+}): Promise<void>;
 export function appendOrUpdateEntry(
   profileIndex: number,
   entry: RequestLogEntry,
@@ -25,6 +31,8 @@ export function subscribeRequestLog(
 ```
 
 `appendOrUpdateEntry` upserts by `id`, newest-first, applies the 200 / 8 MB caps.
+
+`syncRecordingWithPatching` is the single idle path: global pause turns every recording flag off; no enabled rules on the selected profile turns that flag off. Entries are left in place. Tab-lock does not flip recording.
 
 `dropAt` / `insertSlot` must stay aligned with `profiles[]`. Undo of a deleted profile calls `insertSlot` at the restored index so later profiles keep their own logs; the restored profile gets an empty log (spec: undo does not restore the log).
 
@@ -43,6 +51,7 @@ export function profileWouldPatch(
     lockedTabId: number | null;
   },
 ): boolean;
+export function profileHasEnabledRules(profile: Profile): boolean;
 ```
 
 Must stay consistent with `compileProfileToRules` filter grouping (URL filters OR, type filters OR, groups AND; empty groups pass; paused / no enabled rules / tab-lock miss → false).

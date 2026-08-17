@@ -9,6 +9,8 @@ import {
   remapOnReorder,
   setRecording,
   setTypeFilter,
+  stopAllRecording,
+  syncRecordingWithPatching,
   wipeLocalFallbackKeys,
 } from '~/lib/session-log';
 import type { RequestLogEntry } from '~/lib/types';
@@ -113,5 +115,48 @@ describe('session-log', () => {
     } else {
       expect(state.entries).toEqual([]);
     }
+  });
+
+  it('does not let a late pending write overwrite a final status', async () => {
+    await appendOrUpdateEntry(0, entry('race', { status: 'pending' }));
+    await appendOrUpdateEntry(0, entry('race', { status: 200 }));
+    await appendOrUpdateEntry(0, entry('race', { status: 'pending' }));
+    const state = await getRequestLogState();
+    expect(state.entries[0]!.find((row) => row.id === 'race')!.status).toBe(200);
+  });
+
+  it('stopAllRecording turns every flag off and keeps entries', async () => {
+    await setRecording(0, true);
+    await setRecording(1, true);
+    await appendOrUpdateEntry(0, entry('keep'));
+    await stopAllRecording();
+    const state = await getRequestLogState();
+    expect(state.recording).toEqual([false, false]);
+    expect(state.entries[0]![0]!.id).toBe('keep');
+  });
+
+  it('syncRecordingWithPatching unifies pause and no-rules as recording off', async () => {
+    await setRecording(0, true);
+    await setRecording(1, true);
+    await appendOrUpdateEntry(0, entry('keep'));
+    await syncRecordingWithPatching({
+      paused: true,
+      selectedIndex: 0,
+      selectedHasRules: true,
+    });
+    let state = await getRequestLogState();
+    expect(state.recording).toEqual([false, false]);
+    expect(state.entries[0]![0]!.id).toBe('keep');
+
+    await setRecording(0, true);
+    await setRecording(1, true);
+    await syncRecordingWithPatching({
+      paused: false,
+      selectedIndex: 0,
+      selectedHasRules: false,
+    });
+    state = await getRequestLogState();
+    expect(state.recording[0]).toBe(false);
+    expect(state.recording[1]).toBe(true);
   });
 });

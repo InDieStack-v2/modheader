@@ -148,7 +148,7 @@ description: "Task list for feature implementation"
 
 **Purpose**: Full quickstart, both browsers, no regressions
 
-- [X] T032 Extend `tests/e2e/request-log.spec.ts` for global-pause (no new rows, both chips visible) and export/backup containing no log keys
+- [X] T032 Extend `tests/e2e/request-log.spec.ts` for global-pause (recording resets off, no new rows, Recording chip gone) and export/backup containing no log keys
 - [X] T033 Run `specs/003-profile-request-logs/quickstart.md` automated commands and Chrome manual scenarios 1–3. On Firefox (`npm run dev:firefox`), confirm recording + a patched row, popup close keeps the log, full restart clears it (proves `storage.session` or local+onStartup fallback). Record the Firefox result in the PR/change description (Principle II)
 - [X] T034 `npm run compile && npm run lint && npm run test && npm run test:e2e` all green; existing tabbar/parity/headers suites still pass
 

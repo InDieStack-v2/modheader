@@ -10,6 +10,7 @@ import {
   anyRecording,
   appendOrUpdateEntry,
   getRequestLogState,
+  mergeLogEntry,
 } from './session-log';
 import { getRuntimeState } from './storage';
 import type { NameValue, RequestLogEntry } from './types';
@@ -102,8 +103,10 @@ async function ensureEntry(
 }
 
 async function upsert(entry: RequestLogEntry): Promise<void> {
-  pending.set(entry.id, entry);
-  await appendOrUpdateEntry(entry.profileIndex, entry);
+  const current = pending.get(entry.id);
+  const merged = current ? mergeLogEntry(current, entry) : entry;
+  pending.set(merged.id, merged);
+  await appendOrUpdateEntry(merged.profileIndex, merged);
 }
 
 export async function syncRequestLogHook(): Promise<void> {
@@ -344,7 +347,7 @@ export function startRequestLogObserver(): void {
 
   wr.onErrorOccurred.addListener((details) => {
     void (async () => {
-      const existing = pending.get(details.requestId);
+      const existing = await ensureEntry(details);
       if (!existing) {
         return;
       }

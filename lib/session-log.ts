@@ -93,6 +93,35 @@ export async function setRecording(
   await writeState(next);
 }
 
+export async function stopAllRecording(): Promise<void> {
+  const state = await getRequestLogState();
+  if (!state.recording.some(Boolean)) {
+    return;
+  }
+  await writeState({
+    ...state,
+    recording: state.recording.map(() => false),
+  });
+}
+
+/**
+ * Recording is only meaningful while this profile can patch. Global pause or
+ * no enabled rules turns recording off (entries stay). Same path for both.
+ */
+export async function syncRecordingWithPatching(input: {
+  paused: boolean;
+  selectedIndex: number;
+  selectedHasRules: boolean;
+}): Promise<void> {
+  if (input.paused) {
+    await stopAllRecording();
+    return;
+  }
+  if (!input.selectedHasRules) {
+    await setRecording(input.selectedIndex, false);
+  }
+}
+
 function estimatedBytes(state: RequestLogState): number {
   return JSON.stringify(state).length;
 }
@@ -101,26 +130,79 @@ function capProfile(list: RequestLogEntry[]): RequestLogEntry[] {
   return list.length > MAX_ENTRIES ? list.slice(0, MAX_ENTRIES) : list;
 }
 
+function preferBody(
+  prev: RequestLogEntry['requestBody'],
+  next: RequestLogEntry['requestBody'],
+): RequestLogEntry['requestBody'] {
+  if (!next || next.kind === 'unavailable') {
+    return prev ?? next;
+  }
+  if (!prev || prev.kind === 'unavailable' || prev.kind === 'empty') {
+    return next;
+  }
+  return next;
+}
+
+export function mergeLogStatus(
+  prev: RequestLogEntry['status'],
+  next: RequestLogEntry['status'],
+): RequestLogEntry['status'] {
+  if (next === 'pending' && prev !== 'pending') {
+    return prev;
+  }
+  return next;
+}
+
+export function mergeLogEntry(
+  prev: RequestLogEntry,
+  next: RequestLogEntry,
+): RequestLogEntry {
+  return {
+    ...prev,
+    ...next,
+    startedAt: Math.min(prev.startedAt, next.startedAt),
+    status: mergeLogStatus(prev.status, next.status),
+    requestHeaders: next.requestHeaders.length
+      ? next.requestHeaders
+      : prev.requestHeaders,
+    responseHeaders: next.responseHeaders?.length
+      ? next.responseHeaders
+      : prev.responseHeaders,
+    requestBody: preferBody(prev.requestBody, next.requestBody),
+    responseBody: preferBody(prev.responseBody, next.responseBody),
+  };
+}
+
+let writeChain: Promise<void> = Promise.resolve();
+
 export async function appendOrUpdateEntry(
   profileIndex: number,
   entry: RequestLogEntry,
 ): Promise<void> {
-  const next = pad(await getRequestLogState(), profileIndex + 1);
-  const list = [...(next.entries[profileIndex] ?? [])];
-  const existing = list.findIndex((row) => row.id === entry.id);
-  if (existing >= 0) {
-    list[existing] = entry;
-  } else {
-    list.unshift(entry);
-  }
-  next.entries[profileIndex] = capProfile(list);
-  while (
-    estimatedBytes(next) > MAX_BYTES &&
-    (next.entries[profileIndex]?.length ?? 0) > 1
-  ) {
-    next.entries[profileIndex] = next.entries[profileIndex]!.slice(0, -1);
-  }
-  await writeState(next);
+  const run = async () => {
+    const next = pad(await getRequestLogState(), profileIndex + 1);
+    const list = [...(next.entries[profileIndex] ?? [])];
+    const existing = list.findIndex((row) => row.id === entry.id);
+    if (existing >= 0) {
+      list[existing] = mergeLogEntry(list[existing]!, entry);
+    } else {
+      list.unshift(entry);
+    }
+    next.entries[profileIndex] = capProfile(list);
+    while (
+      estimatedBytes(next) > MAX_BYTES &&
+      (next.entries[profileIndex]?.length ?? 0) > 1
+    ) {
+      next.entries[profileIndex] = next.entries[profileIndex]!.slice(0, -1);
+    }
+    await writeState(next);
+  };
+  const queued = writeChain.then(run, run);
+  writeChain = queued.then(
+    () => undefined,
+    () => undefined,
+  );
+  await queued;
 }
 
 export async function clearEntries(profileIndex: number): Promise<void> {

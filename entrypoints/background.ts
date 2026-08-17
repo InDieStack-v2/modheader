@@ -10,6 +10,7 @@ import {
   setRuntimeState,
 } from '~/lib/storage';
 import type { Profile, RuntimeState } from '~/lib/types';
+import { profileHasEnabledRules } from '~/lib/request-match';
 import {
   startRequestLogObserver,
   syncRequestLogHook,
@@ -17,6 +18,7 @@ import {
 import {
   REQUEST_LOG_ENTRIES_KEY,
   REQUEST_LOG_RECORDING_KEY,
+  syncRecordingWithPatching,
   wipeLocalFallbackKeys,
 } from '~/lib/session-log';
 
@@ -161,6 +163,16 @@ export default defineBackground(() => {
     await recompileSessionRules(state);
     await updateBadge(state);
     await updateContextMenus(state);
+    const selected = selectProfile(state);
+    const selectedIndex =
+      state.selectedProfileIndex < state.profiles.length
+        ? state.selectedProfileIndex
+        : 0;
+    await syncRecordingWithPatching({
+      paused: state.isPaused ?? false,
+      selectedIndex,
+      selectedHasRules: selected ? profileHasEnabledRules(selected) : false,
+    });
   }
 
   // --- Pause/lock context menu clicks (T017) ---

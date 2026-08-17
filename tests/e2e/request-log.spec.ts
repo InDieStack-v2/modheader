@@ -294,4 +294,67 @@ test.describe('profile request logs (spec 003)', () => {
     await script.click();
     await expect(popup.getByRole('group', { name: 'Capture resource types' }).getByRole('button', { pressed: true })).toHaveCount(1);
   });
+
+  test('global pause and no enabled headers reset recording', async ({
+    context,
+    extensionId,
+    echoServer,
+  }) => {
+    const chrome = chromeIn(await backgroundWorker(context));
+    await chrome.setLocal({
+      profiles: [
+        profileWith({
+          headers: [{ enabled: true, name: 'X-Log', value: '1' }],
+        }),
+      ],
+      selectedProfileIndex: 0,
+    });
+
+    const popup = await context.newPage();
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('button', { name: 'Start recording' }).click();
+    await expect(popup.getByLabel('Recording', { exact: true })).toBeVisible();
+
+    const page = await context.newPage();
+    await page.goto(`${echoServer.url}/echo`);
+    await page.evaluate(async (url: string) => {
+      await fetch(url);
+    }, `${echoServer.url}/echo`);
+    await popup.bringToFront();
+    await expect(popup.getByText(`${echoServer.url}/echo`).first()).toBeVisible({
+      timeout: 5000,
+    });
+    const before = await popup.getByText(`${echoServer.url}/echo`).count();
+
+    await popup.getByRole('tab', { name: 'Headers' }).click();
+    await popup.getByLabel('Pause').click();
+    await expect(popup.getByLabel('Play')).toBeVisible();
+    await expect(popup.getByLabel('Recording', { exact: true })).toHaveCount(0);
+
+    await page.evaluate(async (url: string) => {
+      await fetch(`${url}?paused=1`);
+    }, `${echoServer.url}/echo`);
+    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.waitForTimeout(1500);
+    await expect(popup.getByText(`${echoServer.url}/echo`)).toHaveCount(before);
+    await expect(
+      popup.getByRole('button', { name: 'Start recording' }),
+    ).toBeDisabled();
+
+    await popup.getByRole('tab', { name: 'Headers' }).click();
+    await popup.getByLabel('Play').click();
+    await expect(popup.getByLabel('Recording', { exact: true })).toHaveCount(0);
+
+    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await expect(
+      popup.getByRole('button', { name: 'Start recording' }),
+    ).toBeEnabled();
+    await popup.getByRole('button', { name: 'Start recording' }).click();
+    await expect(popup.getByLabel('Recording', { exact: true })).toBeVisible();
+
+    await popup.getByRole('tab', { name: 'Headers' }).click();
+    await popup.getByPlaceholder('Header name').first().fill('');
+    await expect(popup.getByLabel('Recording', { exact: true })).toHaveCount(0);
+  });
 });

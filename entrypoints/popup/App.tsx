@@ -41,6 +41,7 @@ import type {
   RuntimeState,
   UnsupportedNotice,
 } from '~/lib/types';
+import { profileHasEnabledRules } from '~/lib/request-match';
 import {
   clearEntries,
   dropAt,
@@ -50,6 +51,7 @@ import {
   remapOnReorder,
   setRecording,
   subscribeRequestLog,
+  syncRecordingWithPatching,
 } from '~/lib/session-log';
 
 function noticeMessage(notice: UnsupportedNotice): string {
@@ -139,6 +141,27 @@ export default function App() {
       void ensureSlots(state.profiles.length);
     }
   }, [state?.profiles.length]);
+
+  const recordingReady = state != null;
+  const recordingIndex =
+    state && state.selectedProfileIndex < state.profiles.length
+      ? state.selectedProfileIndex
+      : 0;
+  const recordingPaused = state?.isPaused ?? false;
+  const recordingHasRules = state?.profiles[recordingIndex]
+    ? profileHasEnabledRules(state.profiles[recordingIndex]!)
+    : false;
+
+  useEffect(() => {
+    if (!recordingReady) {
+      return;
+    }
+    void syncRecordingWithPatching({
+      paused: recordingPaused,
+      selectedIndex: recordingIndex,
+      selectedHasRules: recordingHasRules,
+    });
+  }, [recordingReady, recordingPaused, recordingIndex, recordingHasRules]);
 
   if (!state) {
     return null; // loading
@@ -299,7 +322,7 @@ export default function App() {
         onReorder={reorderProfile}
       />
 
-      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+      <Box sx={{ flexGrow: 1, minWidth: 0, position: 'relative' }}>
         <Box
           sx={{
             display: 'flex',
@@ -467,13 +490,15 @@ export default function App() {
           <RequestLogList
             profileIndex={profileIndex}
             recording={logState.recording[profileIndex] === true}
+            canRecord={!recordingPaused && recordingHasRules}
             entries={logState.entries[profileIndex] ?? []}
             typeFilter={logState.typeFilter[profileIndex] ?? []}
             onToggleRecording={() => {
-              void setRecording(
-                profileIndex,
-                logState.recording[profileIndex] !== true,
-              );
+              const turningOn = logState.recording[profileIndex] !== true;
+              if (turningOn && (recordingPaused || !recordingHasRules)) {
+                return;
+              }
+              void setRecording(profileIndex, turningOn);
             }}
             onClear={() => {
               void clearEntries(profileIndex);
@@ -483,6 +508,48 @@ export default function App() {
             onExpand={setExpandedLogId}
           />
         )}
+
+      <Snackbar
+        open={snackbar != null}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        autoHideDuration={snackbar?.kind === 'undo-delete' ? 5000 : 3000}
+        onClose={() => {
+          setSnackbar(null);
+          setUndoBuffer(null);
+        }}
+        message={snackbar?.message}
+        sx={{ position: 'absolute', bottom: 12, left: 0, right: 0 }}
+        slotProps={{
+          content: {
+            sx: {
+              bgcolor: 'background.paper',
+              color: 'text.primary',
+              border: 1,
+              borderColor: 'divider',
+              justifyContent: 'center',
+              textAlign: 'center',
+              '& .MuiSnackbarContent-message': {
+                flex: '1 1 auto',
+                textAlign: 'center',
+                width: '100%',
+              },
+            },
+          },
+        }}
+        action={
+          snackbar?.kind === 'undo-delete' ? (
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => {
+                undoDelete();
+              }}
+            >
+              {snackbar.buttonText}
+            </Button>
+          ) : undefined
+        }
+      />
       </Box>
 
       <SettingsDialog
@@ -505,32 +572,6 @@ export default function App() {
         onClose={() => setBackupOpen(false)}
         onRestore={(profiles) => saveProfiles(profiles, 0)}
         onNotify={notify}
-      />
-
-      <Snackbar
-        open={snackbar != null}
-        autoHideDuration={snackbar?.kind === 'undo-delete' ? 5000 : 3000}
-        onClose={() => {
-          setSnackbar(null);
-          setUndoBuffer(null);
-        }}
-        message={snackbar?.message}
-        action={
-          snackbar?.kind === 'undo-delete' ? (
-            <Button
-              color="inherit"
-              size="small"
-              onClick={() => {
-                // Resolved at click time so undoDelete closes over the
-                // CURRENT undoBuffer/state, not the snackbar's creation
-                // render (which would see a null undoBuffer).
-                undoDelete();
-              }}
-            >
-              {snackbar.buttonText}
-            </Button>
-          ) : undefined
-        }
       />
     </Box>
   );

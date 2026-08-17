@@ -59,7 +59,7 @@ Request logging is off until the user explicitly starts it. On the logs tab, a s
 4. **Given** recording is on, **When** a request does not match the profile's enabled filters, or matches but is not patched by this profile, **Then** it is not logged.
 5. **Given** recording is on, **When** the user pauses it, **Then** no further entries are added, and entries already captured remain visible.
 6. **Given** recording is on, **When** the user closes and later reopens the popup, **Then** recording is still on and entries captured while the popup was closed are visible.
-7. **Given** the extension is globally paused (header modification off), **When** recording is on, **Then** no new log entries are created because nothing is being patched.
+7. **Given** the extension is globally paused (header modification off), **When** recording is on, **Then** recording turns off for every profile, existing entries remain, and no new log entries are created.
 8. **Given** recording is on for profile A, **When** the user switches to profile B, **Then** profile A's recording state is unchanged, and profile B has its own independent recording state (off unless the user started it there).
 9. **Given** recording is on and the log has entries, **When** the browser fully restarts, **Then** recording is off for every profile, every log is empty, and the user must start recording again.
 10. **Given** recording is on, **When** the user is on the Headers tab or reopens the popup on Headers, **Then** a recording indicator is visible in the compact status area; they must go to the Logs tab to pause.
@@ -108,7 +108,7 @@ When the user opens a log entry they can read the request body and the response 
 
 - What happens when the profile has no filters? The profile applies everywhere, so every request this profile actually patches is eligible to be logged while recording is on — including documents, scripts, images, and other types, not only XHR/fetch.
 - What happens when the profile has a type filter? Only patched requests of those selected types are logged.
-- What happens when all header rules are disabled? Nothing is patched, so no entries are created even if recording is on.
+- What happens when all header rules are disabled? Nothing is patched, so recording turns off for that profile (existing entries remain) and no new entries are created. The same reset happens on global pause — one idle path whenever headers are not being modified.
 - What happens when filters are edited while recording is on? Subsequent requests are evaluated against the current filters; already-captured entries are not retroactively removed or rewritten.
 - What happens when the user deletes a profile that has logs or is recording? Recording stops and that profile's log is discarded with the profile. Undo of profile deletion restores the profile's rules but not its request log; the restored profile starts with recording off and an empty log, and other profiles' logs stay aligned with their tabs.
 - What happens when the captured list grows very large? The log keeps only the most recent entries up to a fixed cap (see Assumptions); older entries drop off silently.
@@ -134,7 +134,7 @@ When the user opens a log entry they can read the request body and the response 
 - **FR-007**: The start/pause control MUST visually reflect whether recording is currently on or off.
 - **FR-008**: While recording is on for a profile, the system MUST append a log entry for each network request that (a) matches that profile's enabled filters (or all requests, if the profile has no enabled filters), (b) is in scope of the current global pause and tab-lock state, and (c) has at least one of that profile's enabled header rules applied. There is no implicit restriction to XHR/fetch; resource types are included or excluded only by the profile's own type filters.
 - **FR-009**: Requests that are not patched by the recording profile MUST NOT be logged.
-- **FR-010**: Recording MUST continue while the popup is closed, until the user pauses it, the profile is deleted, or the browser fully restarts.
+- **FR-010**: Recording MUST continue while the popup is closed, until the user pauses it, header modification stops (global pause or the profile has no enabled header rules), the profile is deleted, or the browser fully restarts.
 - **FR-011**: Pausing recording MUST stop new entries from being added and MUST leave existing entries in place.
 - **FR-012**: Each profile MUST have its own recording on/off state and its own log; switching profiles MUST show that profile's log and control, not another profile's.
 - **FR-013**: Recording on/off state and captured log entries MUST persist across popup close/reopen within the same browser session, and MUST both reset (recording off, log empty) after a full browser restart.
@@ -154,7 +154,7 @@ When the user opens a log entry they can read the request body and the response 
 ### Key Entities *(include if feature involves data)*
 
 - **Profile Content Tab**: One of two views inside the active profile workspace — Headers (editor) or Logs. Independent of the left-hand profile tab bar.
-- **Recording Session**: Per-profile on/off flag that decides whether patched requests are captured. Off by default. Survives popup close; resets off after a full browser restart. Independent of the global header-modification pause.
+- **Recording Session**: Per-profile on/off flag that decides whether patched requests are captured. Off by default. Survives popup close; resets off after a full browser restart, a global pause, or when the profile no longer has enabled header rules. Cannot stay on while nothing is being patched.
 - **Request Log Entry**: One captured patched request for a profile. Attributes: time, method, URL (origin + path + query; no credentials or fragment), resource type, status (pending / HTTP code / failed), a post-modification snapshot of request and/or response headers (full header set, values unredacted), and request/response bodies (text up to 64 KB each; binary marked undisplayable). Belongs to one profile.
 - **Request Log**: The ordered list of entries for one profile, newest first, capped at a fixed maximum. Cleared independently of recording state, and discarded on browser restart.
 
@@ -174,7 +174,7 @@ When the user opens a log entry they can read the request body and the response 
 
 ## Assumptions
 
-- "span/pause" in the request means start/pause: a dedicated recording control on the logs tab, not the existing global header-modification pause. Global pause still stops patching, and therefore stops new log entries, but it is not how the user turns logging on.
+- "span/pause" in the request means start/pause: a dedicated recording control on the logs tab, not the existing global header-modification pause. Global pause still stops patching. Because nothing is being modified, recording resets off (entries stay); unpause does not restart recording. The same reset applies when the profile has no enabled header rules. This is one idle path — recording cannot stay on while headers are not being modified.
 - "Patched APIs based on filter" means requests that both match the profile's enabled URL/resource-type filters and actually had at least one of that profile's enabled header rules applied. There is no hidden XHR-only default. Filter-only traffic that was not modified is out of scope.
 - Logging is per profile so that two profiles with different filters do not mix traffic. A profile that is not recording never writes entries, even if another profile is recording.
 - Recording is opt-in and off by default because request URLs and bodies can contain sensitive data. Logs stay local and are excluded from export and cloud backup. Recording and logs are session-scoped: they survive popup close, and both reset on a full browser restart.

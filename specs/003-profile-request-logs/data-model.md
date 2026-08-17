@@ -67,11 +67,11 @@ Same shapes at keys `requestLogRecording` and `requestLogEntries`. Deleted in `r
 
 ```text
 recording off  --start-->  recording on  (listeners armed if first profile)
-recording on   --pause-->  recording off (listeners disarmed if last profile)
+recording on   --pause / global pause / no enabled rules-->  recording off (listeners disarmed if last profile)
 recording on   --browser restart--> off + entries cleared
 entry: pending --headers/status--> pending|code --complete/error--> code|failed
 delete profile --> dropAt(index); shift higher indices
 undo delete   --> insertSlot(index); empty log, recording off
 ```
 
-Global pause / tab-lock do not flip the recording flag; they only prevent new entries (nothing is patched).
+Global pause and “no enabled header rules” use the same path: flip recording off and leave existing entries. Tab-lock does not flip the recording flag; it only prevents new entries for other tabs.
