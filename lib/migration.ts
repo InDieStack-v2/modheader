@@ -27,7 +27,7 @@ function emptyHeaderRow() {
   return { enabled: true, name: '', value: '', comment: '' };
 }
 
-/** Port of the legacy load-path defaults (src/scripts/main.js:166-184). */
+/** Fill title / empty-row defaults on a 2.3.2 profile. */
 function normalizeLegacyProfile(profile: Profile, index: number): void {
   fixLegacyProfile(profile);
   if (!profile.title) {

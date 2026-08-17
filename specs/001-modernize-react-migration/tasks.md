@@ -17,7 +17,6 @@
 ## Path Conventions
 
 - WXT extension layout at repo root: `entrypoints/`, `components/`, `lib/`, `tests/`, `assets/` (per plan.md)
-- Legacy code lives in `src/` until T045 removes it after parity sign-off
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -134,7 +133,7 @@
 - [X] T042 [US4] Consolidate packaging in `package.json` + `wxt.config.ts`: `npm run build` and `npm run zip` produce Chrome/Firefox outputs; verify zips exclude junk files (FR-010); delete superseded `scripts/build.mjs`
 - [X] T043 [P] [US4] Run dependency audit (no EOL/unmaintained runtime deps — FR-006: AngularJS and Angular Material gone) and record results in `README.md`
 - [X] T044 [P] [US4] Verify no deprecated APIs remain (`execCommand`, `browserAction`, Chrome-72 sniffing — FR-007) and delete `src/styles/_DS_Store`
-- [ ] T045 [US4] Delete legacy `src/` directory (only after T024, T036, T041 sign-off recorded in `checklists/parity.md`)
+- [X] T045 [US4] Delete legacy `src/` directory (only after T024, T036, T041 sign-off recorded in `checklists/parity.md`)
 - [X] T046 [P] [US4] Update `README.md`: new dev/build/test/zip commands, MV3 architecture summary, remove obsolete "no build tools" installation section
 - [X] T047 [US4] Amend `.specify/memory/constitution.md` to v2.0.0 (redefine Principles I, IV, V for build tooling, npm deps, automated tests) with Sync Impact Report per governance rules (completed via /skill:speckit-constitution — v2.0.0 ratified 2026-07-31)
 

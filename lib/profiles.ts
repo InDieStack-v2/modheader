@@ -1,10 +1,10 @@
 import type { Profile } from './types';
 
-/** Characters escaped by the legacy wildcard→regex algorithm (src/scripts/main.js:1). */
+/** Characters escaped by the wildcard→regex algorithm. */
 const SPECIAL_CHARS = new Set('^$&+?.()|{}[]/'.split(''));
 
 /**
- * Legacy wildcard→regex conversion (port of src/scripts/main.js:8-30).
+ * Wildcard→regex conversion.
  * Escapes `^$&+?.()|{}[]/`, `\` → `\\`, `*` → `.*`.
  */
 export function wildcardToRegex(urlPattern: string): string {
@@ -24,13 +24,12 @@ export function wildcardToRegex(urlPattern: string): string {
 }
 
 function emptyHeaderRow() {
-  // Legacy `addHeader` (src/scripts/main.js:58-65) creates an enabled empty row.
+  // New header rows start enabled and empty.
   return { enabled: true, name: '', value: '', comment: '' };
 }
 
 /**
  * Create a profile with a unique auto-name `Profile N` (smallest free N).
- * Port of legacy `dataSource.createProfile` (src/scripts/main.js:136-151).
  */
 export function createProfile(existingProfiles: Profile[] = []): Profile {
   const titles = new Set(existingProfiles.map((p) => p.title));
@@ -50,7 +49,6 @@ export function createProfile(existingProfiles: Profile[] = []): Profile {
 
 /**
  * Deep-clone a profile, titled `Copy of <title>`.
- * Port of legacy `profileService.cloneProfile` (src/scripts/main.js:231-236).
  */
 export function cloneProfile(profile: Profile): Profile {
   const clone = structuredClone(profile);
@@ -87,7 +85,6 @@ export function reorderProfiles(
 
 /**
  * In-place migration of legacy wildcard `urlPattern` filters to `urlRegex`.
- * Port of legacy `fixProfile` (src/scripts/main.js:8-30).
  */
 export function fixLegacyProfile(profile: Profile): void {
   if (profile.filters) {

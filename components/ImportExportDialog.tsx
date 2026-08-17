@@ -12,11 +12,10 @@ import { fixLegacyProfile } from '~/lib/profiles';
 import type { Profile } from '~/lib/types';
 
 /**
- * Import/export dialog (T031) per contracts/profile-format.md — port of
- * src/exportdialog.tmpl.html + src/importdialog.tmpl.html. Export copies via
- * navigator.clipboard.writeText (replaces deprecated execCommand); import
- * converts legacy urlPattern filters and fills defaults, and leaves the target
- * profile unchanged with a "Failed to import profile" toast on parse failure.
+ * Import/export dialog (T031) per contracts/profile-format.md. Export copies via
+ * navigator.clipboard.writeText; import converts legacy urlPattern filters and
+ * fills defaults, and leaves the target profile unchanged with a
+ * "Failed to import profile" toast on parse failure.
  */
 
 export interface ImportExportDialogProps {

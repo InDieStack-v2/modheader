@@ -38,8 +38,7 @@ interface OffscreenApi {
 /**
  * Background worker: compiles DNR session rules from the selected profile
  * (T014), plus badge state (T016), pause/lock context menus (T017), and
- * active-tab URL tracking (T018) — ported from legacy src/background.js
- * (browserAction → MV3 action; webRequest tab-URL harvesting → tabs API).
+ * active-tab URL tracking (T018) via the tabs API.
  */
 
 /** Storage keys whose changes require a rule recompile. */
@@ -88,7 +87,7 @@ export default defineBackground(() => {
     });
   }
 
-  /** Port of legacy resetBadgeAndContextMenu badge logic (src/background.js:331-353). */
+  /** Badge: pause / empty / lock / recording / header count. */
   async function updateBadge(state: RuntimeState): Promise<void> {
     const log = await getRequestLogState();
     const selectedIndex =
@@ -118,7 +117,7 @@ export default defineBackground(() => {
     }
   }
 
-  /** Port of legacy createContextMenu titles (src/background.js:282-329). */
+  /** Pause / lock context-menu titles. */
   async function updateContextMenus(state: RuntimeState): Promise<void> {
     await browser.contextMenus.update('pause', {
       title: state.isPaused ? 'Unpause ModHeader' : 'Pause ModHeader',
@@ -199,7 +198,7 @@ export default defineBackground(() => {
     })();
   });
 
-  // --- Active-tab URL tracking via the tabs API (T018, src/background.js:218-263) ---
+  // --- Active-tab URL tracking via the tabs API (T018) ---
   async function trackActiveTab(): Promise<void> {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
     const url = tab?.url;
@@ -225,8 +224,7 @@ export default defineBackground(() => {
     }
   });
 
-  // --- Auto cloud backup on profiles change (FR-002 parity, legacy ---
-  // --- saveStorageToCloud at src/background.js:359-365) ---
+  // --- Auto cloud backup on profiles change (FR-002) ---
   function maybeAutoBackup(): void {
     void (async () => {
       try {

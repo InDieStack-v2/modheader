@@ -14,9 +14,9 @@ import type { AppendMode, Profile } from '~/lib/types';
 
 /**
  * Profile settings dialog (T030): append-mode selector and comment column
- * visibility — port of src/settings.tmpl.html. Legacy appendMode '' = override,
- * 'true' = concatenation, 'comma' = comma separated; the data model normalizes
- * concatenation to 'append', and legacy 'true' is displayed as 'append'.
+ * visibility. Legacy appendMode '' = override, 'true' = concatenation,
+ * 'comma' = comma separated; the data model normalizes concatenation to
+ * 'append', and legacy 'true' is displayed as 'append'.
  */
 export interface SettingsDialogProps {
   open: boolean;

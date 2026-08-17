@@ -13,9 +13,8 @@ import type { Profile } from '~/lib/types';
 
 /**
  * Cloud backup dialog (T032): list/restore snapshots in both the legacy
- * single-item format and the new chunked format via lib/backup.ts — port of
- * src/cloudbackupdialog.tmpl.html. Backup failures are surfaced via Snackbar
- * (FR-014).
+ * single-item format and the new chunked format via lib/backup.ts. Backup
+ * failures are surfaced via Snackbar (FR-014).
  */
 export interface CloudBackupDialogProps {
   open: boolean;

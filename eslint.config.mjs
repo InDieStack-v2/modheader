@@ -13,8 +13,6 @@ export default tseslint.config(
       'coverage/**',
       'test-results/**',
       'playwright-report/**',
-      'src/**', // legacy MV2 code, removed in T045
-      'scripts/**', // legacy build tooling, removed in T042
     ],
   },
   ...tseslint.configs.recommended,

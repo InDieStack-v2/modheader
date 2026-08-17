@@ -18,8 +18,7 @@ import type { HeaderRule } from '~/lib/types';
 /**
  * Editable header rows (T020) with column sorting and a comment column (T029):
  * enabled checkbox, autocomplete name, value, optional comment, delete with
- * ensure-non-empty, and an add row button — port of the legacy header section
- * (src/popup.html:210-315) and SortingController (src/scripts/main.js:529-540).
+ * ensure-non-empty, and an add row button.
  */
 
 function emptyHeader(): HeaderRule {

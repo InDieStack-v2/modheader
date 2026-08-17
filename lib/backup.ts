@@ -167,8 +167,7 @@ export async function listBackups(): Promise<BackupSnapshot[]> {
 
 
 /**
- * Auto-backup on profile change (FR-002 parity with legacy
- * saveStorageToCloud, src/background.js:265-280): writes a snapshot only when
+ * Auto-backup on profile change (FR-002): writes a snapshot only when
  * the serialized profiles differ from the newest existing snapshot, so
  * save-on-change keystrokes don't spam snapshots.
  *

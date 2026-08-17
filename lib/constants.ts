@@ -1,10 +1,9 @@
 /**
- * Shared constants (T007): autocomplete header lists ported from
- * src/scripts/main.js:413-505, sync quota constants, DNR rule limits, and the
- * denied-header denylist (documented limitations, T013).
+ * Shared constants (T007): autocomplete header lists, sync quota constants,
+ * DNR rule limits, and the denied-header denylist (documented limitations, T013).
  */
 
-/** Ported from legacy `autocompleteService.requestHeaderNames` (src/scripts/main.js:413-457). */
+/** Request header autocomplete names. */
 export const REQUEST_HEADER_NAMES: readonly string[] = [
   'Authorization',
   'Cache-Control',
@@ -53,7 +52,7 @@ export const REQUEST_HEADER_NAMES: readonly string[] = [
 ];
 export const REQUEST_HEADER_VALUES: readonly string[] = [];
 
-/** Ported from legacy `autocompleteService.responseHeaderNames` (src/scripts/main.js:459-505). */
+/** Response header autocomplete names. */
 export const RESPONSE_HEADER_NAMES: readonly string[] = [
   'Access-Control-Allow-Origin',
   'Accept-Patch',
