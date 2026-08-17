@@ -8,6 +8,8 @@ import {
   Menu,
   MenuItem,
   Snackbar,
+  Tab,
+  Tabs,
   Typography,
 } from '@mui/material';
 import { browser } from 'wxt/browser';
@@ -17,6 +19,7 @@ import ProfileTabBar from '~/components/ProfileTabBar';
 import SettingsDialog from '~/components/SettingsDialog';
 import ImportExportDialog from '~/components/ImportExportDialog';
 import CloudBackupDialog from '~/components/CloudBackupDialog';
+import RequestLogList from '~/components/RequestLogList';
 import {
   MAX_SESSION_RULES,
   REQUEST_HEADER_NAMES,
@@ -34,9 +37,20 @@ import {
 import type {
   HeaderRule,
   Profile,
+  RequestLogState,
   RuntimeState,
   UnsupportedNotice,
 } from '~/lib/types';
+import {
+  clearEntries,
+  dropAt,
+  ensureSlots,
+  getRequestLogState,
+  insertSlot,
+  remapOnReorder,
+  setRecording,
+  subscribeRequestLog,
+} from '~/lib/session-log';
 
 function noticeMessage(notice: UnsupportedNotice): string {
   switch (notice.reason) {
@@ -72,6 +86,15 @@ export default function App() {
     buttonText?: string;
     kind?: 'undo-delete';
   } | null>(null);
+  const [workspaceTab, setWorkspaceTab] = useState<'headers' | 'logs'>(
+    'headers',
+  );
+  const [logState, setLogState] = useState<RequestLogState>({
+    recording: [],
+    entries: [],
+    typeFilter: [],
+  });
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   const notify = (message: string) => setSnackbar({ message });
 
@@ -86,10 +109,6 @@ export default function App() {
       }
       setState(loaded);
     })();
-    // The popup is the only writer of `profiles`/`selectedProfileIndex`, so
-    // storage echoes of our own edits are ignored — applying them would race
-    // with typing and reset the cursor/selection/undo stack of the controlled
-    // inputs. Other keys (isPaused, lockedTabId, activeTabUrl) still flow in.
     return subscribeRuntimeState((fresh) => {
       setState((prev) => {
         if (!prev) {
@@ -104,6 +123,22 @@ export default function App() {
       });
     });
   }, []);
+
+  useEffect(() => {
+    void getRequestLogState().then(setLogState);
+    return subscribeRequestLog(setLogState);
+  }, []);
+
+  useEffect(() => {
+    setWorkspaceTab('headers');
+    setExpandedLogId(null);
+  }, [state?.selectedProfileIndex]);
+
+  useEffect(() => {
+    if (state?.profiles.length) {
+      void ensureSlots(state.profiles.length);
+    }
+  }, [state?.profiles.length]);
 
   if (!state) {
     return null; // loading
@@ -153,10 +188,12 @@ export default function App() {
   };
   const addProfile = () => {
     const profiles = [...state.profiles, createProfile(state.profiles)];
+    void ensureSlots(profiles.length);
     saveProfiles(profiles, profiles.length - 1);
   };
   const duplicateProfile = (index: number) => {
     const profiles = [...state.profiles, cloneProfile(state.profiles[index]!)];
+    void ensureSlots(profiles.length);
     saveProfiles(profiles, profiles.length - 1);
   };
   const renameProfile = (index: number, title: string) => {
@@ -175,6 +212,7 @@ export default function App() {
     } else if (from > profileIndex && to <= profileIndex) {
       selected = profileIndex + 1;
     }
+    void remapOnReorder(from, to);
     saveProfiles(profiles, selected);
   };
   const deleteProfile = (index: number) => {
@@ -190,6 +228,7 @@ export default function App() {
       selected = profileIndex - 1;
     }
     setUndoBuffer({ profile: removed, index });
+    void dropAt(index);
     saveProfiles(profiles, selected);
     setSnackbar({ message: 'Profile deleted', buttonText: 'Undo', kind: 'undo-delete' });
   };
@@ -205,6 +244,7 @@ export default function App() {
     );
     setUndoBuffer(null);
     setSnackbar(null);
+    void insertSlot(undoBuffer.index);
     saveProfiles(profiles, undoBuffer.index);
   };
 
@@ -301,6 +341,14 @@ export default function App() {
               ❚❚
             </IconButton>
           )}
+          {logState.recording[profileIndex] ? (
+            <Chip
+              size="small"
+              color="error"
+              label="Recording"
+              aria-label="Recording"
+            />
+          ) : null}
           {state.lockedTabId != null ? (
             <Chip
               size="small"
@@ -367,6 +415,29 @@ export default function App() {
           </Alert>
         ))}
 
+        <Tabs
+          value={workspaceTab}
+          onChange={(_e, value: 'headers' | 'logs') => setWorkspaceTab(value)}
+          aria-label="Workspace"
+          sx={{ minHeight: 32, px: 0.5 }}
+        >
+          <Tab
+            value="headers"
+            label="Headers"
+            sx={{ minHeight: 32, py: 0 }}
+          />
+          <Tab
+            value="logs"
+            label={
+              logState.recording[profileIndex]
+                ? 'Logs · rec'
+                : 'Logs'
+            }
+            sx={{ minHeight: 32, py: 0 }}
+          />
+        </Tabs>
+
+        {workspaceTab === 'headers' ? (
         <Box sx={{ px: 1, py: 0.25 }}>
           <FilterEditor
             filters={profile.filters}
@@ -392,6 +463,26 @@ export default function App() {
             }
           />
         </Box>
+        ) : (
+          <RequestLogList
+            profileIndex={profileIndex}
+            recording={logState.recording[profileIndex] === true}
+            entries={logState.entries[profileIndex] ?? []}
+            typeFilter={logState.typeFilter[profileIndex] ?? []}
+            onToggleRecording={() => {
+              void setRecording(
+                profileIndex,
+                logState.recording[profileIndex] !== true,
+              );
+            }}
+            onClear={() => {
+              void clearEntries(profileIndex);
+            }}
+            onCopyCurl={notify}
+            expandedId={expandedLogId}
+            onExpand={setExpandedLogId}
+          />
+        )}
       </Box>
 
       <SettingsDialog

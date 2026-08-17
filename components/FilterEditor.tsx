@@ -11,27 +11,12 @@ import {
 } from '@mui/material';
 import { isRe2Compatible } from '~/lib/dnr';
 import type { Filter, TypeFilter, UrlFilter } from '~/lib/types';
+import ResourceTypeToggles from './ResourceTypeToggles';
 
 /**
- * URL and resource-type filter editor (T028) — port of the legacy filter UI
- * (src/popup.html:316-359) and filter ops (src/scripts/main.js:44-56).
- * URL patterns are stored as `urlRegex`; legacy wildcard `urlPattern` values
- * are converted on import/migration (fixLegacyProfile). Non-RE2 patterns show
- * a warning and are skipped by the DNR compiler (non-re2-filter notice).
+ * URL and resource-type filter editor — resource types use shared
+ * ResourceTypeToggles (spec 004).
  */
-
-/** Resource types offered by the legacy UI (src/popup.html:344-351). */
-const RESOURCE_TYPES: { value: string; label: string }[] = [
-  { value: 'main_frame', label: 'Main Frame' },
-  { value: 'sub_frame', label: 'Sub Frame' },
-  { value: 'stylesheet', label: 'Stylesheet' },
-  { value: 'script', label: 'Script' },
-  { value: 'image', label: 'Image' },
-  { value: 'object', label: 'Object' },
-  { value: 'xmlhttprequest', label: 'XmlHttpRequest' },
-  { value: 'other', label: 'Other' },
-];
-
 export interface FilterEditorProps {
   filters: Filter[];
   /** Best-effort active tab URL, used to prefill new URL filters (legacy behavior). */
@@ -141,26 +126,14 @@ export default function FilterEditor({
             />
           )}
           {filter.type === 'types' && (
-            <FormControl size="small" fullWidth>
-              <InputLabel>Resource Type</InputLabel>
-              <Select
-                multiple
-                label="Resource Type"
-                value={(filter as TypeFilter).resourceType}
-                onChange={(e) =>
-                  updateFilter(index, {
-                    ...filter,
-                    resourceType: e.target.value as string[],
-                  })
-                }
-              >
-                {RESOURCE_TYPES.map((rt) => (
-                  <MenuItem key={rt.value} value={rt.value}>
-                    {rt.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <ResourceTypeToggles
+              mode="capture"
+              value={(filter as TypeFilter).resourceType}
+              aria-label="Capture resource types"
+              onChange={(resourceType) =>
+                updateFilter(index, { ...filter, resourceType })
+              }
+            />
           )}
           <Button size="small" onClick={() => removeFilter(index)}>
             ✕

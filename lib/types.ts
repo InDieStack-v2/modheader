@@ -47,6 +47,41 @@ export interface Profile {
   hideComment?: boolean;
 }
 
+export interface NameValue {
+  name: string;
+  value: string;
+}
+
+export type BodyKind = 'text' | 'binary' | 'empty' | 'unavailable';
+
+export interface BodyCapture {
+  kind: BodyKind;
+  text?: string;
+  truncated?: boolean;
+}
+
+export interface RequestLogEntry {
+  id: string;
+  profileIndex: number;
+  startedAt: number;
+  method: string;
+  url: string;
+  resourceType: string;
+  status: 'pending' | number | 'failed';
+  requestHeaders: NameValue[];
+  responseHeaders?: NameValue[];
+  requestBody?: BodyCapture;
+  responseBody?: BodyCapture;
+}
+
+/** Session-only (storage.session, or local fallback wiped on startup). */
+export interface RequestLogState {
+  recording: boolean[];
+  entries: RequestLogEntry[][];
+  /** Per-profile visible types; [] = all types. */
+  typeFilter: string[][];
+}
+
 /** Keys of chrome.storage.local (see data-model.md "RuntimeState"). */
 export interface RuntimeState {
   profiles: Profile[];

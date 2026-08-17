@@ -43,6 +43,8 @@ export default defineConfig({
       'storage',
       'contextMenus',
       'tabs',
+      'webRequest',
+      'scripting',
       ...(browser === 'firefox' ? [] : ['offscreen']),
     ],
     host_permissions: ['<all_urls>'],

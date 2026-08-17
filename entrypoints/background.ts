@@ -10,6 +10,15 @@ import {
   setRuntimeState,
 } from '~/lib/storage';
 import type { Profile, RuntimeState } from '~/lib/types';
+import {
+  startRequestLogObserver,
+  syncRequestLogHook,
+} from '~/lib/request-log-observer';
+import {
+  REQUEST_LOG_ENTRIES_KEY,
+  REQUEST_LOG_RECORDING_KEY,
+  wipeLocalFallbackKeys,
+} from '~/lib/session-log';
 
 /** Chrome-only offscreen API (not present in Firefox types/runtime). */
 interface OffscreenApi {
@@ -121,20 +130,30 @@ export default defineBackground(() => {
     });
   }
 
+  let menusInFlight: Promise<void> | undefined;
   async function ensureContextMenus(): Promise<void> {
-    // Context menus do not survive a browser restart, and onInstalled does not
-    // fire on browser start — recreate idempotently on worker startup.
-    await browser.contextMenus.removeAll();
-    await browser.contextMenus.create({
-      id: 'pause',
-      title: 'Pause ModHeader',
-      contexts: ['action'],
-    });
-    await browser.contextMenus.create({
-      id: 'lock',
-      title: 'Lock to this tab',
-      contexts: ['action'],
-    });
+    if (menusInFlight) {
+      await menusInFlight;
+      return;
+    }
+    menusInFlight = (async () => {
+      await browser.contextMenus.removeAll();
+      await browser.contextMenus.create({
+        id: 'pause',
+        title: 'Pause ModHeader',
+        contexts: ['action'],
+      });
+      await browser.contextMenus.create({
+        id: 'lock',
+        title: 'Lock to this tab',
+        contexts: ['action'],
+      });
+    })();
+    try {
+      await menusInFlight;
+    } finally {
+      menusInFlight = undefined;
+    }
   }
 
   async function refresh(): Promise<void> {
@@ -362,6 +381,22 @@ export default defineBackground(() => {
       .then(refresh)
       .then(runMigrationIfNeeded);
   });
+
+  browser.runtime.onStartup.addListener(() => {
+    void wipeLocalFallbackKeys();
+  });
+
+  startRequestLogObserver();
+  browser.storage.onChanged.addListener((changes, areaName) => {
+    if (
+      (areaName === 'session' || areaName === 'local') &&
+      (REQUEST_LOG_RECORDING_KEY in changes ||
+        REQUEST_LOG_ENTRIES_KEY in changes)
+    ) {
+      void syncRequestLogHook();
+    }
+  });
+  void syncRequestLogHook();
 
   // Worker startup: rebuild menus (browser restart case), compile rules, and
   // fall back to migration if it hasn't run yet (e.g. onInstalled missed).

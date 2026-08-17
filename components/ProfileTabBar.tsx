@@ -96,6 +96,7 @@ export default function ProfileTabBar({
         orientation="vertical"
         value={selectedIndex}
         onChange={(_event, index: number) => onSelect(index)}
+        aria-label="Profiles"
         // Arrow keys move focus AND selection (FR-016).
         selectionFollowsFocus
         sx={{

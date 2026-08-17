@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { backgroundWorker, chromeIn, profileWith } from './helpers';
 import type { Profile } from '../../lib/types';
@@ -16,6 +17,10 @@ function seedProfiles(...titles: string[]): Profile[] {
       headers: [{ enabled: true, name: `X-${title}`, value: '1' }],
     }),
   );
+}
+
+function profileTabs(page: Page) {
+  return page.getByRole('tablist', { name: 'Profiles' }).getByRole('tab');
 }
 
 async function storedState(
@@ -75,7 +80,7 @@ test.describe('profile tab bar (spec 002, US2)', () => {
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
 
     await popup.getByRole('button', { name: 'New profile' }).click();
-    await expect(popup.getByRole('tab')).toHaveCount(3);
+    await expect(profileTabs(popup)).toHaveCount(3);
     await expect
       .poll(async () => {
         const state = await storedState(chrome);
@@ -193,7 +198,7 @@ test.describe('profile tab bar (spec 002, US2)', () => {
     await popup.close();
     const reopened = await context.newPage();
     await reopened.goto(`chrome-extension://${extensionId}/popup.html`);
-    const tabs = reopened.getByRole('tab');
+    const tabs = profileTabs(reopened);
     await expect(tabs).toHaveCount(3);
     // Avatar badges render initials only; the accessible name carries the title.
     await expect(tabs.nth(0)).toHaveAttribute('aria-label', 'Beta');
@@ -217,7 +222,7 @@ test.describe('profile tab bar (spec 002, US2)', () => {
     await popup.getByRole('menuitem', { name: 'Delete' }).click();
 
     // Tab removed immediately, nearest profile becomes active, snackbar shown.
-    await expect(popup.getByRole('tab')).toHaveCount(2);
+    await expect(profileTabs(popup)).toHaveCount(2);
     await expect(
       popup.getByRole('tab', { name: 'Gamma' }),
     ).toHaveAttribute('aria-selected', 'true');
@@ -225,7 +230,7 @@ test.describe('profile tab bar (spec 002, US2)', () => {
 
     // Undo restores Beta at its original index and re-selects it.
     await popup.getByRole('button', { name: 'Undo' }).click();
-    await expect(popup.getByRole('tab')).toHaveCount(3);
+    await expect(profileTabs(popup)).toHaveCount(3);
     await expect(
       popup.getByRole('tab', { name: 'Beta' }),
     ).toHaveAttribute('aria-selected', 'true');
