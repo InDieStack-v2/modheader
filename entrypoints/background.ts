@@ -18,9 +18,11 @@ import {
 import {
   REQUEST_LOG_ENTRIES_KEY,
   REQUEST_LOG_RECORDING_KEY,
+  getRequestLogState,
   syncRecordingWithPatching,
   wipeLocalFallbackKeys,
 } from '~/lib/session-log';
+import { toolbarBadge } from '~/lib/toolbar-badge';
 
 /** Chrome-only offscreen API (not present in Firefox types/runtime). */
 interface OffscreenApi {
@@ -47,11 +49,6 @@ const RULE_STATE_KEYS: readonly string[] = [
   'isPaused',
   'lockedTabId',
 ];
-
-// Badge colors from legacy resetBadgeAndContextMenu (src/background.js:331-353).
-const COLOR_NORMAL = '#db4343';
-const COLOR_PAUSED = '#666';
-const COLOR_LOCKED = '#ff8e8e';
 
 const ICON_COLOR = 'icon.png';
 const ICON_GREY = 'icon_bw.png';
@@ -93,13 +90,11 @@ export default defineBackground(() => {
 
   /** Port of legacy resetBadgeAndContextMenu badge logic (src/background.js:331-353). */
   async function updateBadge(state: RuntimeState): Promise<void> {
-    if (state.isPaused) {
-      await browser.action.setIcon({ path: ICON_GREY });
-      await browser.action.setBadgeText({ text: '❚❚' });
-      await browser.action.setBadgeBackgroundColor({ color: COLOR_PAUSED });
-      return;
-    }
-    const numHeaders = countEnabledHeaders(selectProfile(state));
+    const log = await getRequestLogState();
+    const selectedIndex =
+      state.selectedProfileIndex < state.profiles.length
+        ? state.selectedProfileIndex
+        : 0;
     let lockedElsewhere = false;
     if (state.lockedTabId != null) {
       const [activeTab] = await browser.tabs.query({
@@ -108,17 +103,18 @@ export default defineBackground(() => {
       });
       lockedElsewhere = activeTab?.id !== state.lockedTabId;
     }
-    if (numHeaders === 0) {
-      await browser.action.setIcon({ path: ICON_GREY });
-      await browser.action.setBadgeText({ text: '' });
-    } else if (lockedElsewhere) {
-      await browser.action.setIcon({ path: ICON_GREY });
-      await browser.action.setBadgeText({ text: '🔒' });
-      await browser.action.setBadgeBackgroundColor({ color: COLOR_LOCKED });
-    } else {
-      await browser.action.setIcon({ path: ICON_COLOR });
-      await browser.action.setBadgeText({ text: numHeaders.toString() });
-      await browser.action.setBadgeBackgroundColor({ color: COLOR_NORMAL });
+    const view = toolbarBadge({
+      paused: state.isPaused ?? false,
+      headerCount: countEnabledHeaders(selectProfile(state)),
+      lockedElsewhere,
+      recording: log.recording[selectedIndex] === true,
+    });
+    await browser.action.setIcon({
+      path: view.icon === 'grey' ? ICON_GREY : ICON_COLOR,
+    });
+    await browser.action.setBadgeText({ text: view.text });
+    if (view.color) {
+      await browser.action.setBadgeBackgroundColor({ color: view.color });
     }
   }
 
@@ -406,6 +402,9 @@ export default defineBackground(() => {
         REQUEST_LOG_ENTRIES_KEY in changes)
     ) {
       void syncRequestLogHook();
+      if (REQUEST_LOG_RECORDING_KEY in changes) {
+        void getRuntimeState().then(updateBadge);
+      }
     }
   });
   void syncRequestLogHook();
