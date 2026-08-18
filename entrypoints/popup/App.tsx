@@ -42,6 +42,7 @@ import type {
   UnsupportedNotice,
 } from '~/lib/types';
 import { profileHasEnabledRules } from '~/lib/request-match';
+import { visibleEntries } from '~/lib/resource-types';
 import {
   clearEntries,
   dropAt,
@@ -137,6 +138,12 @@ export default function App() {
   }, [state?.selectedProfileIndex]);
 
   useEffect(() => {
+    if (workspaceTab !== 'logs') {
+      setExpandedLogId(null);
+    }
+  }, [workspaceTab]);
+
+  useEffect(() => {
     if (state?.profiles.length) {
       void ensureSlots(state.profiles.length);
     }
@@ -151,6 +158,17 @@ export default function App() {
   const recordingHasRules = state?.profiles[recordingIndex]
     ? profileHasEnabledRules(state.profiles[recordingIndex]!)
     : false;
+
+  useEffect(() => {
+    if (!expandedLogId) {
+      return;
+    }
+    const entries = logState.entries[recordingIndex] ?? [];
+    const filter = logState.typeFilter[recordingIndex] ?? [];
+    if (!visibleEntries(entries, filter).some((entry) => entry.id === expandedLogId)) {
+      setExpandedLogId(null);
+    }
+  }, [expandedLogId, logState, recordingIndex]);
 
   useEffect(() => {
     if (!recordingReady) {
@@ -501,6 +519,7 @@ export default function App() {
               void setRecording(profileIndex, turningOn);
             }}
             onClear={() => {
+              setExpandedLogId(null);
               void clearEntries(profileIndex);
             }}
             onCopyCurl={notify}

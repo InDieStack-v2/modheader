@@ -233,7 +233,9 @@ export default function RequestLogList({
                     <Typography variant="caption">cURL</Typography>
                   </IconButton>
                 </Box>
-                {open ? <RequestLogDetail entry={entry} /> : null}
+                {open ? (
+                  <RequestLogDetail entry={entry} onCopyBody={onCopyCurl} />
+                ) : null}
               </Box>
             );
           })}
