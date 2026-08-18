@@ -17,8 +17,14 @@ async function startEchoServer(): Promise<EchoServer> {
   let lastRequestHeaders: http.IncomingHttpHeaders | null = null;
   const server = http.createServer((req, res) => {
     lastRequestHeaders = req.headers;
-    res.setHeader('content-type', 'application/json');
-    res.end(JSON.stringify({ url: req.url, headers: req.headers }));
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => {
+      chunks.push(chunk);
+    });
+    req.on('end', () => {
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ url: req.url, headers: req.headers }));
+    });
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();

@@ -174,9 +174,11 @@ test.describe('profile request logs (spec 003)', () => {
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
     await popup.getByRole('tab', { name: /^Logs/ }).click();
     await popup.getByRole('button', { name: 'Start recording' }).click();
+    await expect(popup.getByLabel('Recording', { exact: true })).toBeVisible();
 
     const page = await context.newPage();
     await page.goto(`${echoServer.url}/echo`);
+    await page.waitForTimeout(400);
     await page.evaluate(async (url: string) => {
       await fetch(url, {
         method: 'POST',
@@ -189,7 +191,7 @@ test.describe('profile request logs (spec 003)', () => {
     const row = popup.getByLabel(`Log POST xmlhttprequest ${echoServer.url}/echo`);
     await expect(row).toBeVisible({ timeout: 5000 });
     await row.click();
-    await expect(popup.getByText('hello').or(popup.getByText('No body'))).toBeVisible();
+    await expect(popup.getByText('hello')).toBeVisible();
 
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await popup.getByRole('button', { name: 'Copy cURL' }).first().click();
@@ -322,10 +324,9 @@ test.describe('profile request logs (spec 003)', () => {
       await fetch(url);
     }, `${echoServer.url}/echo`);
     await popup.bringToFront();
-    await expect(popup.getByText(`${echoServer.url}/echo`).first()).toBeVisible({
-      timeout: 5000,
-    });
-    const before = await popup.getByText(`${echoServer.url}/echo`).count();
+    await expect(
+      popup.getByLabel(`Log GET xmlhttprequest ${echoServer.url}/echo`),
+    ).toBeVisible({ timeout: 5000 });
 
     await popup.getByRole('tab', { name: 'Headers' }).click();
     await popup.getByLabel('Pause').click();
@@ -337,7 +338,9 @@ test.describe('profile request logs (spec 003)', () => {
     }, `${echoServer.url}/echo`);
     await popup.getByRole('tab', { name: /^Logs/ }).click();
     await popup.waitForTimeout(1500);
-    await expect(popup.getByText(`${echoServer.url}/echo`)).toHaveCount(before);
+    await expect(
+      popup.getByLabel(`Log GET xmlhttprequest ${echoServer.url}/echo?paused=1`),
+    ).toHaveCount(0);
     await expect(
       popup.getByRole('button', { name: 'Start recording' }),
     ).toBeDisabled();
@@ -356,5 +359,201 @@ test.describe('profile request logs (spec 003)', () => {
     await popup.getByRole('tab', { name: 'Headers' }).click();
     await popup.getByPlaceholder('Header name').first().fill('');
     await expect(popup.getByLabel('Recording', { exact: true })).toHaveCount(0);
+  });
+
+  test('expand one row at a time; cURL does not expand; tab switch collapses', async ({
+    context,
+    extensionId,
+    echoServer,
+  }) => {
+    const chrome = chromeIn(await backgroundWorker(context));
+    await chrome.setLocal({
+      profiles: [
+        profileWith({
+          headers: [{ enabled: true, name: 'X-Log', value: '1' }],
+        }),
+      ],
+      selectedProfileIndex: 0,
+    });
+
+    const popup = await context.newPage();
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('button', { name: 'Start recording' }).click();
+
+    const page = await context.newPage();
+    await page.goto(`${echoServer.url}/echo`);
+    await page.evaluate(async (url: string) => {
+      await fetch(`${url}?one=1`);
+      await fetch(`${url}?two=2`);
+    }, `${echoServer.url}/echo`);
+
+    await popup.bringToFront();
+    const row1 = popup.getByLabel(
+      `Log GET xmlhttprequest ${echoServer.url}/echo?one=1`,
+    );
+    const row2 = popup.getByLabel(
+      `Log GET xmlhttprequest ${echoServer.url}/echo?two=2`,
+    );
+    await expect(row1).toBeVisible({ timeout: 5000 });
+    await expect(row2).toBeVisible();
+
+    await row1.click();
+    await expect(row1).toHaveAttribute('aria-expanded', 'true');
+    await expect(popup.getByLabel('Request log detail')).toBeVisible();
+    await expect(row2).toHaveAttribute('aria-expanded', 'false');
+
+    await row2.click();
+    await expect(row1).toHaveAttribute('aria-expanded', 'false');
+    await expect(row2).toHaveAttribute('aria-expanded', 'true');
+    await expect(popup.getByLabel('Request log detail')).toHaveCount(1);
+
+    await row2.click();
+    await expect(row2).toHaveAttribute('aria-expanded', 'false');
+    await expect(popup.getByLabel('Request log detail')).toHaveCount(0);
+
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await popup.getByRole('button', { name: 'Copy cURL' }).first().click();
+    await expect(popup.getByText(/Copied cURL/)).toBeVisible();
+    await expect(row1).toHaveAttribute('aria-expanded', 'false');
+    await expect(row2).toHaveAttribute('aria-expanded', 'false');
+
+    await row1.click();
+    await expect(row1).toHaveAttribute('aria-expanded', 'true');
+    await popup.getByRole('tab', { name: 'Headers' }).click();
+    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await expect(row1).toHaveAttribute('aria-expanded', 'false');
+    await expect(popup.getByLabel('Request log detail')).toHaveCount(0);
+  });
+
+  test('already-open tab captures request and response bodies', async ({
+    context,
+    extensionId,
+    echoServer,
+  }) => {
+    const chrome = chromeIn(await backgroundWorker(context));
+    await chrome.setLocal({
+      profiles: [
+        profileWith({
+          headers: [{ enabled: true, name: 'X-Log', value: '1' }],
+        }),
+      ],
+      selectedProfileIndex: 0,
+    });
+
+    const page = await context.newPage();
+    await page.goto(`${echoServer.url}/echo`);
+
+    const popup = await context.newPage();
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('button', { name: 'Start recording' }).click();
+    await expect(popup.getByLabel('Recording', { exact: true })).toBeVisible();
+    await page.waitForFunction(
+      () => Boolean((globalThis as unknown as { __modheaderLogHookInstalled?: boolean }).__modheaderLogHookInstalled),
+      null,
+      { timeout: 5000 },
+    );
+
+    await page.evaluate(async (url: string) => {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ hello: 'world' }),
+      });
+    }, `${echoServer.url}/echo`);
+
+    await popup.bringToFront();
+    const postRow = popup.getByLabel(
+      `Log POST xmlhttprequest ${echoServer.url}/echo`,
+    );
+    await expect(postRow).toBeVisible({ timeout: 5000 });
+    await postRow.click();
+    const detail = popup.getByLabel('Request log detail');
+    await expect(detail.getByText('hello')).toBeVisible();
+    await expect(detail.getByText('world')).toBeVisible();
+    await expect(detail.getByText(/"url"/)).toBeVisible();
+    await expect(detail.getByText('No body')).toHaveCount(0);
+    await expect(detail.getByText(/not available/i)).toHaveCount(0);
+
+    await page.evaluate(async (url: string) => {
+      await fetch(`${url}?get=1`);
+    }, `${echoServer.url}/echo`);
+    const getRow = popup.getByLabel(
+      `Log GET xmlhttprequest ${echoServer.url}/echo?get=1`,
+    );
+    await expect(getRow).toBeVisible({ timeout: 5000 });
+    await getRow.click();
+    await expect(
+      popup.getByLabel('Request log detail').getByText('No body'),
+    ).toBeVisible();
+  });
+
+  test('enhanced detail shows overview and copies stored body text', async ({
+    context,
+    extensionId,
+    echoServer,
+  }) => {
+    const chrome = chromeIn(await backgroundWorker(context));
+    await chrome.setLocal({
+      profiles: [
+        profileWith({
+          headers: [{ enabled: true, name: 'X-Log', value: '1' }],
+        }),
+      ],
+      selectedProfileIndex: 0,
+    });
+
+    const popup = await context.newPage();
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('button', { name: 'Start recording' }).click();
+    await expect(popup.getByLabel('Recording', { exact: true })).toBeVisible();
+
+    const page = await context.newPage();
+    await page.goto(`${echoServer.url}/echo`);
+    await page.waitForTimeout(400);
+    await page.evaluate(async (url: string) => {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ hello: 'world' }),
+      });
+    }, `${echoServer.url}/echo`);
+
+    await popup.bringToFront();
+    const row = popup.getByLabel(
+      `Log POST xmlhttprequest ${echoServer.url}/echo`,
+    );
+    await expect(row).toBeVisible({ timeout: 5000 });
+    await row.click();
+
+    const detail = popup.getByLabel('Request log detail');
+    await expect(detail.getByRole('heading', { name: 'Overview' })).toBeVisible();
+    await expect(detail.getByText(/Method/)).toBeVisible();
+    await expect(detail.getByText(`${echoServer.url}/echo`).first()).toBeVisible();
+    await expect(detail.getByRole('heading', { name: 'Request' })).toBeVisible();
+    await expect(detail.getByText('Request headers')).toBeVisible();
+    await expect(detail.getByRole('heading', { name: 'Response' })).toBeVisible();
+    await expect(detail.getByText('Response headers')).toBeVisible();
+    await expect(detail.getByText('hello')).toBeVisible();
+
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await popup.getByRole('button', { name: 'Copy request body' }).click();
+    await expect(popup.getByText('Copied body')).toBeVisible();
+    const copied = await popup.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain('hello');
+
+    await page.evaluate(async (url: string) => {
+      await fetch(`${url}?empty=1`);
+    }, `${echoServer.url}/echo`);
+    const getRow = popup.getByLabel(
+      `Log GET xmlhttprequest ${echoServer.url}/echo?empty=1`,
+    );
+    await expect(getRow).toBeVisible({ timeout: 5000 });
+    await getRow.click();
+    await expect(
+      popup.getByRole('button', { name: 'Copy request body' }),
+    ).toBeDisabled();
   });
 });
