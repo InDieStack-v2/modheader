@@ -1,5 +1,6 @@
 import { browser } from 'wxt/browser';
 import { captureFromWebRequestBody, captureText } from './request-body';
+import type { BodyCapture } from './types';
 import {
   overlayHeaderRules,
   pickEntryForBody,
@@ -109,16 +110,136 @@ async function upsert(entry: RequestLogEntry): Promise<void> {
   await appendOrUpdateEntry(merged.profileIndex, merged);
 }
 
-export async function syncRequestLogHook(): Promise<void> {
-  const scripting = (
+function isInjectableUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+interface ScriptingApi {
+  getRegisteredContentScripts(): Promise<{ id: string }[]>;
+  registerContentScripts(scripts: unknown[]): Promise<void>;
+  unregisterContentScripts(filter: { ids: string[] }): Promise<void>;
+  executeScript?(details: {
+    target: { tabId: number; allFrames?: boolean };
+    files: string[];
+    world?: 'MAIN' | 'ISOLATED';
+    injectImmediately?: boolean;
+  }): Promise<unknown>;
+}
+
+function scriptingApi(): ScriptingApi | undefined {
+  return (
     browser as unknown as {
-      scripting?: {
-        getRegisteredContentScripts(): Promise<{ id: string }[]>;
-        registerContentScripts(scripts: unknown[]): Promise<void>;
-        unregisterContentScripts(filter: { ids: string[] }): Promise<void>;
-      };
+      scripting?: ScriptingApi;
     }
   ).scripting;
+}
+
+async function executeOnTab(
+  scripting: ScriptingApi,
+  tabId: number,
+  files: string[],
+  world?: 'MAIN' | 'ISOLATED',
+): Promise<void> {
+  if (!scripting.executeScript) {
+    return;
+  }
+  const target = { tabId, allFrames: true };
+  const base = { target, files, ...(world ? { world } : {}) };
+  try {
+    await scripting.executeScript({ ...base, injectImmediately: true });
+  } catch {
+    try {
+      await scripting.executeScript(base);
+    } catch {
+      /* restricted page or missing world support */
+    }
+  }
+}
+
+export async function injectHookIntoOpenTabs(): Promise<void> {
+  const scripting = scriptingApi();
+  const tabsApi = (
+    browser as unknown as {
+      tabs?: {
+        query(query: Record<string, never>): Promise<{ id?: number; url?: string }[]>;
+      };
+    }
+  ).tabs;
+  if (!scripting?.executeScript || !tabsApi?.query) {
+    return;
+  }
+  let tabs: { id?: number; url?: string }[] = [];
+  try {
+    tabs = await tabsApi.query({});
+  } catch {
+    return;
+  }
+  for (const tab of tabs) {
+    if (tab.id == null || !tab.url || !isInjectableUrl(tab.url)) {
+      continue;
+    }
+    await injectHookIntoTab(scripting, tab.id);
+  }
+}
+
+async function injectHookIntoTab(
+  scripting: ScriptingApi,
+  tabId: number,
+): Promise<void> {
+  await executeOnTab(scripting, tabId, ['request-log-main.js'], 'MAIN');
+  await executeOnTab(scripting, tabId, ['request-log-hook.js']);
+}
+
+function watchTabsForHook(): void {
+  const tabsApi = (
+    browser as unknown as {
+      tabs?: {
+        onUpdated: {
+          addListener(
+            cb: (
+              tabId: number,
+              changeInfo: { status?: string; url?: string },
+              tab: { url?: string },
+            ) => void,
+          ): void;
+        };
+      };
+    }
+  ).tabs;
+  if (!tabsApi?.onUpdated) {
+    return;
+  }
+  tabsApi.onUpdated.addListener((tabId, changeInfo, tab) => {
+    const url = changeInfo.url ?? tab.url;
+    const navigated = Boolean(changeInfo.url);
+    const loaded =
+      changeInfo.status === 'loading' || changeInfo.status === 'complete';
+    if ((!navigated && !loaded) || !url || !isInjectableUrl(url)) {
+      return;
+    }
+    void (async () => {
+      const state = await getRequestLogState();
+      if (!anyRecording(state)) {
+        return;
+      }
+      const scripting = scriptingApi();
+      if (!scripting) {
+        return;
+      }
+      await injectHookIntoTab(scripting, tabId);
+    })();
+  });
+}
+
+let openTabHooksArmed = false;
+
+export async function syncRequestLogHook(): Promise<void> {
+  const scripting = scriptingApi();
   if (!scripting) {
     return;
   }
@@ -131,53 +252,85 @@ export async function syncRequestLogHook(): Promise<void> {
     (id) =>
       id === 'modheader-request-log-hook' || id === 'modheader-request-log-main',
   );
-  if (should && missing.length > 0) {
-    const scripts = [];
-    if (missing.includes('modheader-request-log-main')) {
-      scripts.push({
-        id: 'modheader-request-log-main',
-        js: ['request-log-main.js'],
-        matches: ['<all_urls>'],
-        runAt: 'document_start',
-        allFrames: true,
-        world: 'MAIN',
-        persistAcrossSessions: false,
-      });
-    }
-    if (missing.includes('modheader-request-log-hook')) {
-      scripts.push({
-        id: 'modheader-request-log-hook',
-        js: ['request-log-hook.js'],
-        matches: ['<all_urls>'],
-        runAt: 'document_start',
-        allFrames: true,
-        persistAcrossSessions: false,
-      });
-    }
-    if (scripts.length > 0) {
-      try {
-        await scripting.registerContentScripts(scripts);
-      } catch {
-        const isolated = scripts.filter(
-          (script) => script.id === 'modheader-request-log-hook',
-        );
-        if (isolated.length > 0) {
-          await scripting.registerContentScripts(isolated);
+  if (should) {
+    if (missing.length > 0) {
+      const scripts = [];
+      if (missing.includes('modheader-request-log-main')) {
+        scripts.push({
+          id: 'modheader-request-log-main',
+          js: ['request-log-main.js'],
+          matches: ['<all_urls>'],
+          runAt: 'document_start',
+          allFrames: true,
+          world: 'MAIN',
+          persistAcrossSessions: false,
+        });
+      }
+      if (missing.includes('modheader-request-log-hook')) {
+        scripts.push({
+          id: 'modheader-request-log-hook',
+          js: ['request-log-hook.js'],
+          matches: ['<all_urls>'],
+          runAt: 'document_start',
+          allFrames: true,
+          persistAcrossSessions: false,
+        });
+      }
+      if (scripts.length > 0) {
+        try {
+          await scripting.registerContentScripts(scripts);
+        } catch {
+          const isolated = scripts.filter(
+            (script) => script.id === 'modheader-request-log-hook',
+          );
+          if (isolated.length > 0) {
+            await scripting.registerContentScripts(isolated);
+          }
         }
       }
     }
-  } else if (!should && extra.length > 0) {
-    await scripting.unregisterContentScripts({ ids: extra });
+    if (!openTabHooksArmed) {
+      openTabHooksArmed = true;
+      await injectHookIntoOpenTabs();
+    }
+  } else {
+    openTabHooksArmed = false;
+    if (extra.length > 0) {
+      await scripting.unregisterContentScripts({ ids: extra });
+    }
   }
 }
 
-export async function handleLogBodyMessage(message: {
+type HookBodyKind = 'text' | 'binary' | 'empty';
+
+export interface LogBodyMessage {
   type?: string;
   method?: string;
   url?: string;
   body?: string;
   startedAt?: number;
-}): Promise<void> {
+  requestBody?: string;
+  requestBodyKind?: HookBodyKind;
+  responseBody?: string;
+  responseBodyKind?: HookBodyKind;
+}
+
+function bodyFromHook(
+  text: string | undefined,
+  kind?: HookBodyKind,
+): BodyCapture {
+  if (kind === 'binary') {
+    return { kind: 'binary' };
+  }
+  if (kind === 'empty') {
+    return { kind: 'empty' };
+  }
+  return captureText(text ?? '');
+}
+
+export async function handleLogBodyMessage(
+  message: LogBodyMessage,
+): Promise<void> {
   if (message.type !== 'modheader:request-log-body') {
     return;
   }
@@ -185,22 +338,49 @@ export async function handleLogBodyMessage(message: {
   if (!recording) {
     return;
   }
-  const match = pickEntryForBody(log.entries[index] ?? [], {
+  const input = {
     method: message.method ?? 'GET',
     url: message.url ?? '',
     startedAt: message.startedAt ?? Date.now(),
-  });
-  if (!match) {
-    return;
-  }
-  const updated: RequestLogEntry = {
-    ...match,
-    responseBody: captureText(message.body ?? ''),
   };
-  await upsert(updated);
+  const hasRequest =
+    message.requestBody !== undefined || message.requestBodyKind !== undefined;
+  const hasResponse =
+    message.responseBody !== undefined ||
+    message.responseBodyKind !== undefined ||
+    message.body !== undefined;
+
+  if (hasRequest) {
+    const match = pickEntryForBody(log.entries[index] ?? [], input, 'request');
+    if (match) {
+      await upsert({
+        ...match,
+        requestBody: bodyFromHook(message.requestBody, message.requestBodyKind),
+      });
+    }
+  }
+
+  if (hasResponse) {
+    const latest = hasRequest ? await getRequestLogState() : log;
+    const match = pickEntryForBody(
+      latest.entries[index] ?? [],
+      input,
+      'response',
+    );
+    if (match) {
+      await upsert({
+        ...match,
+        responseBody: bodyFromHook(
+          message.responseBody ?? message.body,
+          message.responseBodyKind,
+        ),
+      });
+    }
+  }
 }
 
 export function startRequestLogObserver(): void {
+  watchTabsForHook();
   const wr = (
     browser as unknown as {
       webRequest?: {
@@ -357,14 +537,6 @@ export function startRequestLogObserver(): void {
   }, filter);
 
   browser.runtime.onMessage.addListener((message: unknown) => {
-    void handleLogBodyMessage(
-      (message ?? {}) as {
-        type?: string;
-        method?: string;
-        url?: string;
-        body?: string;
-        startedAt?: number;
-      },
-    );
+    void handleLogBodyMessage((message ?? {}) as LogBodyMessage);
   });
 }

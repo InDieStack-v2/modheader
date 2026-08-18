@@ -19,6 +19,10 @@
         url: data.url,
         body: data.body,
         startedAt: data.startedAt,
+        requestBody: data.requestBody,
+        requestBodyKind: data.requestBodyKind,
+        responseBody: data.responseBody,
+        responseBodyKind: data.responseBodyKind,
       });
     } catch {
       /* ignore */

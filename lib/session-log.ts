@@ -140,6 +140,9 @@ function preferBody(
   if (!prev || prev.kind === 'unavailable' || prev.kind === 'empty') {
     return next;
   }
+  if (next.kind === 'empty' && (prev.kind === 'text' || prev.kind === 'binary')) {
+    return prev;
+  }
   return next;
 }
 

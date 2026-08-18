@@ -6,6 +6,7 @@ import {
   getRequestLogState,
   insertSlot,
   isSessionStoreAvailable,
+  mergeLogEntry,
   remapOnReorder,
   setRecording,
   setTypeFilter,
@@ -40,6 +41,23 @@ describe('session-log', () => {
     expect(state.recording[0]).toBe(false);
     expect(state.entries[0]!.map((e) => e.id)).toEqual(['b', 'a']);
     expect(state.entries[0]!.find((e) => e.id === 'a')!.status).toBe(200);
+  });
+
+  it('does not replace a captured text body with a later empty body', () => {
+    const prev = entry('a', {
+      requestBody: { kind: 'text', text: '{"hello":"world"}' },
+      responseBody: { kind: 'text', text: '{"url":"/echo"}' },
+    });
+    const next = entry('a', {
+      requestBody: { kind: 'empty' },
+      responseBody: { kind: 'unavailable' },
+    });
+    const merged = mergeLogEntry(prev, next);
+    expect(merged.requestBody).toEqual({
+      kind: 'text',
+      text: '{"hello":"world"}',
+    });
+    expect(merged.responseBody).toEqual({ kind: 'text', text: '{"url":"/echo"}' });
   });
 
   it('caps at 200 entries', async () => {
