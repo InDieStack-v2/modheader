@@ -293,11 +293,11 @@ export default function App() {
 
   const pause = () => {
     void setRuntimeState({ isPaused: true });
-    notify('ModHeader paused');
+    notify('ModHeaderX paused');
   };
   const play = () => {
     void clearRuntimeState(['isPaused']);
-    notify('ModHeader unpaused');
+    notify('ModHeaderX unpaused');
   };
   const lockToTab = () => {
     void (async () => {
@@ -307,13 +307,13 @@ export default function App() {
       });
       if (tab?.id != null) {
         await setRuntimeState({ lockedTabId: tab.id });
-        notify('Restricted ModHeader to the current tab');
+        notify('Restricted ModHeaderX to the current tab');
       }
     })();
   };
   const unlockAllTab = () => {
     void clearRuntimeState(['lockedTabId']);
-    notify('Applying ModHeader to all tabs');
+    notify('Applying ModHeaderX to all tabs');
   };
 
   if (!profile) {

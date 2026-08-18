@@ -25,7 +25,7 @@
       during implementation.
 -->
 
-# ModHeader Constitution
+# ModHeaderX Constitution
 
 ## Core Principles
 
@@ -47,7 +47,7 @@ supported extension platform. Browser-specific APIs MUST be feature-detected and
 with a working fallback, or rejected. A feature that only works in one browser is not
 done.
 
-Rationale: ModHeader ships to both the Chrome Web Store and Firefox Add-ons from a single
+Rationale: ModHeaderX ships to both the Chrome Web Store and Firefox Add-ons from a single
 codebase; divergence would double the maintenance surface.
 
 ### III. Simplicity & Minimal Change (YAGNI)

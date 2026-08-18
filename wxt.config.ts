@@ -28,7 +28,7 @@ export default defineConfig({
     build: { modulePreload: false },
   }),
   manifest: ({ browser }) => ({
-    name: 'ModHeader',
+    name: 'ModHeaderX',
     description: 'Add, modify, and remove HTTP request and response headers.',
     icons: {
       16: 'icon/16.png',
@@ -49,7 +49,7 @@ export default defineConfig({
     ],
     host_permissions: ['<all_urls>'],
     action: {
-      default_title: 'ModHeader',
+      default_title: 'ModHeaderX',
       default_icon: {
         16: 'icon/16.png',
         48: 'icon/48.png',

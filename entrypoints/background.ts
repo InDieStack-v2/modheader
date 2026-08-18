@@ -120,7 +120,7 @@ export default defineBackground(() => {
   /** Pause / lock context-menu titles. */
   async function updateContextMenus(state: RuntimeState): Promise<void> {
     await browser.contextMenus.update('pause', {
-      title: state.isPaused ? 'Unpause ModHeader' : 'Pause ModHeader',
+      title: state.isPaused ? 'Unpause ModHeaderX' : 'Pause ModHeaderX',
     });
     await browser.contextMenus.update('lock', {
       title: state.lockedTabId != null ? 'Unlock to all tabs' : 'Lock to this tab',
@@ -137,7 +137,7 @@ export default defineBackground(() => {
       await browser.contextMenus.removeAll();
       await browser.contextMenus.create({
         id: 'pause',
-        title: 'Pause ModHeader',
+        title: 'Pause ModHeaderX',
         contexts: ['action'],
       });
       await browser.contextMenus.create({
@@ -330,7 +330,7 @@ export default defineBackground(() => {
             url: 'migration.html',
             reasons: ['LOCAL_STORAGE'],
             justification:
-              'One-time migration of legacy ModHeader localStorage profiles to chrome.storage.local',
+              'One-time migration of legacy ModHeaderX localStorage profiles to chrome.storage.local',
           });
         } catch {
           waiter.cancel();

@@ -1,4 +1,4 @@
-# ModHeader browser extension
+# ModHeaderX browser extension
 
 ## Features
 
@@ -15,9 +15,9 @@
 
 ## Forking and contribution
 
-Feel free to send pull requests to add new features to ModHeader. It will benefit everyone! That said, I reserve the rights to reject pull requests that does not seem useful, or if they add too much complexity for very little benefits.
+Feel free to send pull requests to add new features to ModHeaderX. It will benefit everyone! That said, I reserve the rights to reject pull requests that does not seem useful, or if they add too much complexity for very little benefits.
 
-ModHeader is MIT licensed (see [LICENSE](LICENSE)), so you're free to fork, redistribute, and even use it commercially. As a courtesy, please don't impersonate or rebrand a fork as "ModHeader" itself, and if you build a commercial product on top of it, a heads-up would be appreciated (though not required).
+ModHeaderX is MIT licensed (see [LICENSE](LICENSE)), so you're free to fork, redistribute, and even use it commercially. As a courtesy, please don't impersonate or rebrand a fork as "ModHeader" itself, and if you build a commercial product on top of it, a heads-up would be appreciated (though not required).
 
 ## Installation
 
@@ -28,7 +28,7 @@ produces store-ready packages for both browsers.
 
 ## Development
 
-ModHeader is built with a Node.js toolchain (WXT + React + TypeScript).
+ModHeaderX is built with a Node.js toolchain (WXT + React + TypeScript).
 
 ```
 npm install          # install dependencies (postinstall runs `wxt prepare`)
