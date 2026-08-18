@@ -128,19 +128,23 @@ export function overlayHeaderRules(
   return [...map.values()];
 }
 
-const BODY_MATCH_WINDOW_MS = 2000;
+const BODY_MATCH_WINDOW_MS = 10_000;
 
-/** Oldest pending same method+url within 2s, no body yet (contract tie-break). */
+function bodyIsFilled(
+  body: RequestLogEntry['requestBody'] | RequestLogEntry['responseBody'],
+): boolean {
+  return body?.kind === 'text' || body?.kind === 'binary';
+}
+
+/** Oldest same method+url within 10s whose target body is still empty/unavailable. */
 export function pickEntryForBody(
   entries: RequestLogEntry[],
   input: { method: string; url: string; startedAt: number },
+  which: 'request' | 'response' = 'response',
 ): RequestLogEntry | undefined {
   const method = input.method.toUpperCase();
   const url = sanitizeLogUrl(input.url);
   const candidates = entries.filter((entry) => {
-    if (entry.status !== 'pending') {
-      return false;
-    }
     if (entry.method.toUpperCase() !== method) {
       return false;
     }
@@ -150,7 +154,8 @@ export function pickEntryForBody(
     if (Math.abs(entry.startedAt - input.startedAt) > BODY_MATCH_WINDOW_MS) {
       return false;
     }
-    if (entry.responseBody && entry.responseBody.kind !== 'unavailable') {
+    const target = which === 'request' ? entry.requestBody : entry.responseBody;
+    if (bodyIsFilled(target)) {
       return false;
     }
     return true;

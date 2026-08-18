@@ -145,4 +145,168 @@ describe('pickEntryForBody', () => {
     );
     expect(picked?.id).toBe('a');
   });
+
+  it('matches completed (non-pending) rows', () => {
+    const done = {
+      ...row('done', 1000),
+      status: 200 as const,
+    };
+    const picked = pickEntryForBody([done], {
+      method: 'POST',
+      url: 'https://api.example.com/x',
+      startedAt: 1200,
+    });
+    expect(picked?.id).toBe('done');
+  });
+
+  it('matches failed rows', () => {
+    const failed = {
+      ...row('fail', 1000),
+      status: 'failed' as const,
+    };
+    expect(
+      pickEntryForBody([failed], {
+        method: 'POST',
+        url: 'https://api.example.com/x',
+        startedAt: 1000,
+      })?.id,
+    ).toBe('fail');
+  });
+
+  it('uses a 10s window', () => {
+    expect(
+      pickEntryForBody([row('far', 0)], {
+        method: 'POST',
+        url: 'https://api.example.com/x',
+        startedAt: 10_001,
+      }),
+    ).toBeUndefined();
+    expect(
+      pickEntryForBody([row('near', 0)], {
+        method: 'POST',
+        url: 'https://api.example.com/x',
+        startedAt: 10_000,
+      })?.id,
+    ).toBe('near');
+  });
+
+  it('skips rows whose target body is already text or binary', () => {
+    const filled = {
+      ...row('filled', 1000),
+      status: 200 as const,
+      responseBody: { kind: 'text' as const, text: 'already' },
+    };
+    expect(
+      pickEntryForBody([filled], {
+        method: 'POST',
+        url: 'https://api.example.com/x',
+        startedAt: 1000,
+      }),
+    ).toBeUndefined();
+
+    const binary = {
+      ...row('bin', 1000),
+      responseBody: { kind: 'binary' as const },
+    };
+    expect(
+      pickEntryForBody([binary], {
+        method: 'POST',
+        url: 'https://api.example.com/x',
+        startedAt: 1000,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('skips request attach when request body is already text or binary', () => {
+    const filledReq = {
+      ...row('req', 1000),
+      requestBody: { kind: 'text' as const, text: 'posted' },
+      responseBody: { kind: 'unavailable' as const },
+    };
+    expect(
+      pickEntryForBody(
+        [filledReq],
+        {
+          method: 'POST',
+          url: 'https://api.example.com/x',
+          startedAt: 1000,
+        },
+        'request',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('allows request attach when only the response body is filled', () => {
+    const filledResp = {
+      ...row('both', 1000),
+      requestBody: { kind: 'empty' as const },
+      responseBody: { kind: 'text' as const, text: 'ok' },
+    };
+    expect(
+      pickEntryForBody(
+        [filledResp],
+        {
+          method: 'POST',
+          url: 'https://api.example.com/x',
+          startedAt: 1000,
+        },
+        'request',
+      )?.id,
+    ).toBe('both');
+    expect(
+      pickEntryForBody([filledResp], {
+        method: 'POST',
+        url: 'https://api.example.com/x',
+        startedAt: 1000,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('picks oldest startedAt then lowest id', () => {
+    const picked = pickEntryForBody(
+      [row('b', 1000), row('a', 1000)],
+      { method: 'POST', url: 'https://api.example.com/x', startedAt: 1000 },
+    );
+    expect(picked?.id).toBe('a');
+  });
+
+  it('matches after sanitizeLogUrl of an absolute hook URL', () => {
+    const stored = {
+      ...row('abs', 1000),
+      url: 'https://api.example.com/x',
+    };
+    expect(
+      pickEntryForBody([stored], {
+        method: 'post',
+        url: 'https://user:pass@api.example.com/x#frag',
+        startedAt: 1000,
+      })?.id,
+    ).toBe('abs');
+  });
+
+  it("defaults which to 'response'", () => {
+    const onlyReqOpen = {
+      ...row('open-req', 1000),
+      requestBody: { kind: 'empty' as const },
+      responseBody: { kind: 'text' as const, text: 'done' },
+    };
+    expect(
+      pickEntryForBody([onlyReqOpen], {
+        method: 'POST',
+        url: 'https://api.example.com/x',
+        startedAt: 1000,
+      }),
+    ).toBeUndefined();
+    expect(
+      pickEntryForBody(
+        [onlyReqOpen],
+        {
+          method: 'POST',
+          url: 'https://api.example.com/x',
+          startedAt: 1000,
+        },
+        'request',
+      )?.id,
+    ).toBe('open-req');
+  });
 });
