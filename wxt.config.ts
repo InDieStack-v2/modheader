@@ -27,35 +27,40 @@ export default defineConfig({
   vite: () => ({
     build: { modulePreload: false },
   }),
-  manifest: ({ browser }) => ({
-    name: 'ModHeaderX',
-    description: 'Add, modify, and remove HTTP request and response headers.',
-    icons: {
-      16: 'icon/16.png',
-      48: 'icon/48.png',
-      128: 'icon/128.png',
-    },
-    // Research D3: modifyHeaders requires host access; parity requires all URLs.
-    // 'offscreen' is Chrome-only (migration via offscreen document, D5);
-    // Firefox event pages have DOM/localStorage and migrate directly.
-    permissions: [
-      'declarativeNetRequestWithHostAccess',
-      'storage',
-      'contextMenus',
-      'tabs',
-      'webRequest',
-      'scripting',
-      ...(browser === 'firefox' ? [] : ['offscreen']),
-    ],
-    host_permissions: ['<all_urls>'],
-    action: {
-      default_title: 'ModHeaderX',
-      default_icon: {
+  manifest: ({ browser, mode }) => {
+    // Dev builds share chrome://extensions with the installed copy; a distinct
+    // name keeps the two from looking identical in the toolbar and extension list.
+    const name = mode === 'development' ? 'ModHeaderX (dev)' : 'ModHeaderX';
+    return {
+      name,
+      description: 'Add, modify, and remove HTTP request and response headers.',
+      icons: {
         16: 'icon/16.png',
         48: 'icon/48.png',
         128: 'icon/128.png',
       },
-      // default_popup is set automatically by WXT from entrypoints/popup/.
-    },
-  }),
+      // Research D3: modifyHeaders requires host access; parity requires all URLs.
+      // 'offscreen' is Chrome-only (migration via offscreen document, D5);
+      // Firefox event pages have DOM/localStorage and migrate directly.
+      permissions: [
+        'declarativeNetRequestWithHostAccess',
+        'storage',
+        'contextMenus',
+        'tabs',
+        'webRequest',
+        'scripting',
+        ...(browser === 'firefox' ? [] : ['offscreen']),
+      ],
+      host_permissions: ['<all_urls>'],
+      action: {
+        default_title: name,
+        default_icon: {
+          16: 'icon/16.png',
+          48: 'icon/48.png',
+          128: 'icon/128.png',
+        },
+        // default_popup is set automatically by WXT from entrypoints/popup/.
+      },
+    };
+  },
 });
