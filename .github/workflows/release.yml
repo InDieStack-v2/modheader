@@ -28,7 +28,7 @@ jobs:
         # Strip the leading 'v' (v2.4.0 -> 2.4.0); updates package.json and
         # package-lock.json in the CI workspace only, so zip filenames and the
         # manifest version match the tag.
-        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
 
       - name: Lint
         run: npm run lint

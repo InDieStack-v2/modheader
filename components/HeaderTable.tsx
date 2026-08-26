@@ -116,7 +116,7 @@ export default function HeaderTable({
                 checked={allEnabled}
                 indeterminate={someEnabled && !allEnabled}
                 onChange={(e) => toggleAll(e.target.checked)}
-                inputProps={{ 'aria-label': 'Select all' }}
+                slotProps={{ input: { 'aria-label': 'Select all' } }}
               />
             </TableCell>
             <TableCell>{sortLabel('name', 'Name')}</TableCell>
