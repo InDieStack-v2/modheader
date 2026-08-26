@@ -60,6 +60,13 @@ export default function HeaderTable({
     onChange([...headers, emptyHeader()]);
   };
 
+  const allEnabled = headers.length > 0 && headers.every((h) => h.enabled);
+  const someEnabled = headers.some((h) => h.enabled);
+
+  const toggleAll = (enabled: boolean) => {
+    onChange(headers.map((h) => ({ ...h, enabled })));
+  };
+
   // Legacy SortingController: same predicate toggles direction, persisted order.
   const sortBy = (next: SortPredicate) => {
     const nextReverse = predicate === next ? !reverse : false;
@@ -103,7 +110,15 @@ export default function HeaderTable({
       >
         <TableHead>
           <TableRow>
-            <TableCell padding="checkbox" />
+            <TableCell padding="checkbox">
+              <Checkbox
+                size="small"
+                checked={allEnabled}
+                indeterminate={someEnabled && !allEnabled}
+                onChange={(e) => toggleAll(e.target.checked)}
+                inputProps={{ 'aria-label': 'Select all' }}
+              />
+            </TableCell>
             <TableCell>{sortLabel('name', 'Name')}</TableCell>
             <TableCell>{sortLabel('value', 'Value')}</TableCell>
             {!hideComment && (
