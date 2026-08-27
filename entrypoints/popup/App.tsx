@@ -17,7 +17,7 @@ import HeaderTable from '~/components/HeaderTable';
 import FilterEditor from '~/components/FilterEditor';
 import ProfileTabBar from '~/components/ProfileTabBar';
 import SettingsDialog from '~/components/SettingsDialog';
-import ImportExportDialog from '~/components/ImportExportDialog';
+import ImportDumpDialog from '~/components/ImportDumpDialog';
 import CloudBackupDialog from '~/components/CloudBackupDialog';
 import RequestLogList from '~/components/RequestLogList';
 import {
@@ -26,6 +26,7 @@ import {
   RESPONSE_HEADER_NAMES,
 } from '~/lib/constants';
 import { compileProfileToRules } from '~/lib/dnr';
+import { downloadDump, parseDump, pickDumpFile } from '~/lib/dump';
 import { cloneProfile, createProfile, reorderProfiles } from '~/lib/profiles';
 import {
   clearRuntimeState,
@@ -78,7 +79,7 @@ export default function App() {
   const [state, setState] = useState<RuntimeState | null>(null);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [ioMode, setIoMode] = useState<'import' | 'export' | null>(null);
+  const [dumpImport, setDumpImport] = useState<Profile[] | null>(null);
   const [backupOpen, setBackupOpen] = useState(false);
   const [undoBuffer, setUndoBuffer] = useState<{
     profile: Profile;
@@ -426,18 +427,32 @@ export default function App() {
             <MenuItem
               onClick={() => {
                 setMoreAnchor(null);
-                setIoMode('export');
+                void downloadDump(state.profiles).then(
+                  () => window.close(),
+                  () => notify('Failed to export profiles'),
+                );
               }}
             >
-              Export profile
+              Export profiles
             </MenuItem>
             <MenuItem
               onClick={() => {
                 setMoreAnchor(null);
-                setIoMode('import');
+                void (async () => {
+                  const text = await pickDumpFile();
+                  if (text == null) {
+                    return;
+                  }
+                  const profiles = parseDump(text);
+                  if (!profiles) {
+                    notify('Failed to import profiles');
+                    return;
+                  }
+                  setDumpImport(profiles);
+                })();
               }}
             >
-              Import profile
+              Import profiles
             </MenuItem>
             <MenuItem
               onClick={() => {
@@ -577,13 +592,16 @@ export default function App() {
         onChange={saveProfile}
         onClose={() => setSettingsOpen(false)}
       />
-      <ImportExportDialog
-        open={ioMode != null}
-        mode={ioMode ?? 'export'}
-        profile={profile}
-        onClose={() => setIoMode(null)}
-        onImport={saveProfile}
-        onNotify={notify}
+      <ImportDumpDialog
+        open={dumpImport != null}
+        profiles={dumpImport ?? []}
+        onClose={() => setDumpImport(null)}
+        onImport={(incoming) => {
+          const profiles = [...state.profiles, ...incoming];
+          setUndoBuffer(null);
+          saveProfiles(profiles, state.profiles.length);
+          notify('Profiles successfully import');
+        }}
       />
       <CloudBackupDialog
         open={backupOpen}

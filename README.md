@@ -8,7 +8,7 @@
 * Multiple different profiles (compact popup with a left profile tab bar)
 * Sorting headers by name, value, or comments
 * Append value to existing request or response header
-* Export and import header
+* Export and import profiles
 * Clone profile
 * Cloud backup
 * Tab locking!

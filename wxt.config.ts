@@ -49,6 +49,10 @@ export default defineConfig({
         'tabs',
         'webRequest',
         'scripting',
+        // Popup-owned <a download> blobs die when the popup closes, so a
+        // first-time / Save As export never appears. downloads keeps the
+        // file in the browser download manager until the user accepts it.
+        'downloads',
         ...(browser === 'firefox' ? [] : ['offscreen']),
       ],
       host_permissions: ['<all_urls>'],

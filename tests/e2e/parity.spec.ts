@@ -4,9 +4,9 @@ import type { Profile } from '../../lib/types';
 
 /**
  * E2E parity tests (T034): profile switching, URL filter scoping, pause,
- * tab lock, import/export round-trip. Header assertions use in-page fetch()
- * because main_frame navigations bypass DNR in this Chrome-for-Testing
- * environment (see headers.spec.ts note).
+ * tab lock. Header assertions use in-page fetch() because main_frame
+ * navigations bypass DNR in this Chrome-for-Testing environment
+ * (see headers.spec.ts note). File import/export lives in dump.spec.ts.
  */
 
 async function backgroundWorker(context: BrowserContext): Promise<Worker> {
@@ -206,67 +206,6 @@ test.describe('US2 parity', () => {
       .toBeUndefined();
   });
 
-  test('import/export round-trip via the popup UI', async ({
-    context,
-    extensionId,
-  }) => {
-    const chrome = chromeIn(await backgroundWorker(context));
-    const original = profileWith({
-      title: 'E2E Export',
-      headers: [{ enabled: true, name: 'X-Export-Test', value: 'v1' }],
-    });
-    await chrome.setLocal({ profiles: [original], selectedProfileIndex: 0 });
-
-    const popup = await context.newPage();
-    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-
-    // Export: the dialog shows the serialized profile.
-    await popup.getByLabel('More').click();
-    await popup.getByRole('menuitem', { name: 'Export profile' }).click();
-    const exported = await popup
-      .getByRole('dialog')
-      .locator('textarea')
-      .first()
-      .inputValue();
-    const parsed = JSON.parse(exported) as Profile;
-    expect(parsed.title).toBe('E2E Export');
-    expect(parsed.headers[0]!.name).toBe('X-Export-Test');
-    await popup.getByRole('button', { name: 'Done' }).click();
-
-    // Import: paste a modified profile, success toast, storage updated.
-    await popup.getByLabel('More').click();
-    await popup.getByRole('menuitem', { name: 'Import profile' }).click();
-    const modified = {
-      ...original,
-      title: 'E2E Imported',
-      headers: [{ enabled: true, name: 'X-Export-Test', value: 'v2' }],
-    };
-    await popup
-      .getByRole('dialog')
-      .getByPlaceholder('Paste exported profile here')
-      .fill(JSON.stringify(modified));
-    await popup.getByRole('button', { name: 'Done' }).click();
-    await expect(popup.getByText('Profile successfully import')).toBeVisible();
-    await expect
-      .poll(async () => {
-        const state = await chrome.getLocal(['profiles']);
-        const profiles = state.profiles as Profile[];
-        return `${profiles[0]?.title}|${profiles[0]?.headers[0]?.value}`;
-      })
-      .toBe('E2E Imported|v2');
-
-    // Import failure: toast + target profile unchanged (contract).
-    await popup.getByLabel('More').click();
-    await popup.getByRole('menuitem', { name: 'Import profile' }).click();
-    await popup
-      .getByRole('dialog')
-      .getByPlaceholder('Paste exported profile here')
-      .fill('this is not json');
-    await popup.getByRole('button', { name: 'Done' }).click();
-    await expect(popup.getByText('Failed to import profile')).toBeVisible();
-    const state = await chrome.getLocal(['profiles']);
-    expect((state.profiles as Profile[])[0]!.title).toBe('E2E Imported');
-  });
 });
 
 test.describe('compact layout (spec 002, US1)', () => {

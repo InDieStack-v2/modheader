@@ -3,6 +3,7 @@ import {
   cloneProfile,
   createProfile,
   fixLegacyProfile,
+  normalizeImportedProfile,
   reorderProfiles,
   sortProfiles,
   wildcardToRegex,
@@ -187,5 +188,38 @@ describe('reorderProfiles (spec 002 data-model)', () => {
     const input = named('a', 'b', 'c');
     reorderProfiles(input, 0, 2);
     expect(input.map((p) => p.title)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('normalizeImportedProfile', () => {
+  it('fills defaults for a sparse object', () => {
+    const profile = normalizeImportedProfile({ title: 'Imported' });
+    expect(profile).toMatchObject({
+      title: 'Imported',
+      appendMode: '',
+      hideComment: true,
+      filters: [],
+    });
+    expect(profile?.headers).toHaveLength(1);
+    expect(profile?.respHeaders).toHaveLength(1);
+  });
+
+  it('converts legacy urlPattern filters', () => {
+    const profile = normalizeImportedProfile({
+      title: 'Old',
+      filters: [{ enabled: true, type: 'urls', urlPattern: '*://a.com/*' }],
+    });
+    const filter = profile?.filters[0];
+    expect(filter?.type).toBe('urls');
+    if (filter?.type === 'urls') {
+      expect(filter.urlRegex).toBe('.*:\\/\\/a\\.com\\/.*');
+      expect(filter.urlPattern).toBeUndefined();
+    }
+  });
+
+  it('rejects arrays and primitives', () => {
+    expect(normalizeImportedProfile(null)).toBeNull();
+    expect(normalizeImportedProfile([])).toBeNull();
+    expect(normalizeImportedProfile('profile')).toBeNull();
   });
 });

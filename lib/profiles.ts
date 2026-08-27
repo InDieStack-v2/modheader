@@ -96,3 +96,32 @@ export function fixLegacyProfile(profile: Profile): void {
     }
   }
 }
+
+/**
+ * Coerce one imported JSON value into a Profile, filling defaults and
+ * converting legacy urlPattern filters. Returns null when `raw` is not
+ * a plain object (arrays and primitives are rejected).
+ */
+export function normalizeImportedProfile(raw: unknown): Profile | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+  const value = raw as Partial<Profile>;
+  const profile: Profile = {
+    title: typeof value.title === 'string' ? value.title : '',
+    headers: Array.isArray(value.headers)
+      ? value.headers
+      : [emptyHeaderRow()],
+    respHeaders: Array.isArray(value.respHeaders)
+      ? value.respHeaders
+      : [emptyHeaderRow()],
+    filters: Array.isArray(value.filters) ? value.filters : [],
+    appendMode:
+      value.appendMode === 'comma' || value.appendMode === 'append'
+        ? value.appendMode
+        : '',
+    hideComment: value.hideComment ?? true,
+  };
+  fixLegacyProfile(profile);
+  return profile;
+}
