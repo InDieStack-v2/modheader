@@ -2,16 +2,20 @@
 
 ## Features
 
-* Add/modify/remove request headers and response headers
-* Enable header modification based on URL/resource type
-* Add comments to header
-* Multiple different profiles (compact popup with a left profile tab bar)
-* Sorting headers by name, value, or comments
-* Append value to existing request or response header
-* Export and import profiles
-* Clone profile
-* Cloud backup
-* Tab locking!
+* Add, modify, or remove request and response headers
+* Enable or disable individual header rules, with autocomplete for common names
+* Optional comments on headers; sort by name, value, or comment
+* Append to an existing header: override, concatenate, or comma-separate
+* Restrict modification by URL pattern and/or resource type
+* Multiple profiles in a compact left tab bar — create, rename, clone, delete (with undo), and drag-reorder
+* Pause all header modification, or lock it to the current tab
+* Toolbar badge shows header count, paused, tab-locked, or recording
+* Export and import profiles as JSON (choose which profiles to import)
+* Cloud backup and restore via browser sync
+* Per-profile request log of patched traffic (opt-in recording; session-only, not exported)
+* Live log list with method, status, resource type, and URL; filter visible rows by type
+* Expand a log row for post-modification headers and request/response bodies; copy as cURL
+* Chrome and Firefox (Manifest V3); automatic migration from legacy ModHeader
 
 ## Forking and contribution
 
