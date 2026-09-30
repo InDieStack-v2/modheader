@@ -1,10 +1,9 @@
-import { Box, Button, IconButton, Typography } from '@mui/material';
+import { useState } from 'react';
+import { Box, Button, IconButton, TextField, Typography } from '@mui/material';
+import { matchesRequest } from '~/lib/log-search';
 import type { RequestLogEntry } from '~/lib/types';
 import { toCurl } from '~/lib/curl';
-import {
-  typeShortLabel,
-  visibleEntries,
-} from '~/lib/resource-types';
+import { typeShortLabel, visibleEntries } from '~/lib/resource-types';
 import { setTypeFilter } from '~/lib/session-log';
 import RequestLogDetail from './RequestLogDetail';
 import ResourceTypeToggles from './ResourceTypeToggles';
@@ -67,7 +66,10 @@ export default function RequestLogList({
   expandedId,
   onExpand,
 }: RequestLogListProps) {
-  const visible = visibleEntries(entries, typeFilter);
+  const [query, setQuery] = useState('');
+  const visible = visibleEntries(entries, typeFilter).filter((e) =>
+    matchesRequest(e, query),
+  );
 
   const copyCurl = async (entry: RequestLogEntry) => {
     const { command, bodyOmitted } = toCurl(entry);
@@ -108,6 +110,15 @@ export default function RequestLogList({
               ? 'Recording paused'
               : 'Off while nothing is being modified'}
         </Typography>
+        <TextField
+          size="small"
+          type="search"
+          placeholder="Search…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          slotProps={{ htmlInput: { 'aria-label': 'Search requests' } }}
+          sx={{ ml: 'auto', mr: '10px', flex: '0 1 140px', minWidth: 90 }}
+        />
       </Box>
 
       <Box sx={{ mb: 0.75 }}>
@@ -131,7 +142,7 @@ export default function RequestLogList({
         </Typography>
       ) : visible.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-          Hidden by resource type filter.
+          No requests match the filters.
         </Typography>
       ) : (
         <Box sx={{ maxHeight: 420, overflow: 'auto' }}>

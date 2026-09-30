@@ -1,4 +1,6 @@
-import { Box, Button, Typography } from '@mui/material';
+import { useState } from 'react';
+import { Box, Button, TextField, Typography } from '@mui/material';
+import { matchesSocket } from '~/lib/log-search';
 import type { WsConnectionEntry } from '~/lib/types';
 import WebSocketDetail from './WebSocketDetail';
 
@@ -45,6 +47,8 @@ export default function WebSocketList({
   expandedId,
   onExpand,
 }: WebSocketListProps) {
+  const [query, setQuery] = useState('');
+  const visible = connections.filter((c) => matchesSocket(c, query));
   return (
     <Box sx={{ px: 1, py: 0.5 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
@@ -72,6 +76,15 @@ export default function WebSocketList({
               ? 'Recording paused'
               : 'Off while nothing is being modified'}
         </Typography>
+        <TextField
+          size="small"
+          type="search"
+          placeholder="Search…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          slotProps={{ htmlInput: { 'aria-label': 'Search WebSockets' } }}
+          sx={{ ml: 'auto', mr: '10px', flex: '0 1 140px', minWidth: 90 }}
+        />
       </Box>
 
       {connections.length === 0 ? (
@@ -82,12 +95,19 @@ export default function WebSocketList({
               ? 'Start recording to capture WebSocket connections this profile patches.'
               : 'Recording stays off while nothing is being modified.'}
         </Typography>
+      ) : visible.length === 0 ? (
+        <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+          No WebSockets match the search.
+        </Typography>
       ) : (
         <Box sx={{ maxHeight: 460, overflow: 'auto' }}>
-          {connections.map((row) => {
+          {visible.map((row) => {
             const open = expandedId === row.id;
             return (
-              <Box key={row.id} sx={{ borderBottom: 1, borderColor: 'divider', py: 0.5 }}>
+              <Box
+                key={row.id}
+                sx={{ borderBottom: 1, borderColor: 'divider', py: 0.5 }}
+              >
                 <Box
                   component="button"
                   type="button"
@@ -109,14 +129,22 @@ export default function WebSocketList({
                     color: 'inherit',
                   }}
                 >
-                  <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ flexShrink: 0 }}
+                  >
                     {new Date(row.startedAt).toLocaleTimeString()}
                   </Typography>
                   <Typography
                     component="span"
                     variant="caption"
                     aria-label={`State ${stateLabel(row)}`}
-                    sx={{ color: stateColor(row.state), fontWeight: 600, flexShrink: 0 }}
+                    sx={{
+                      color: stateColor(row.state),
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
                   >
                     {stateLabel(row)}
                   </Typography>
@@ -139,7 +167,9 @@ export default function WebSocketList({
                     {row.messages.length} msg
                   </Typography>
                 </Box>
-                {open ? <WebSocketDetail connection={row} onNotify={onNotify} /> : null}
+                {open ? (
+                  <WebSocketDetail connection={row} onNotify={onNotify} />
+                ) : null}
               </Box>
             );
           })}
