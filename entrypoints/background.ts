@@ -18,6 +18,7 @@ import {
 import {
   REQUEST_LOG_ENTRIES_KEY,
   REQUEST_LOG_RECORDING_KEY,
+  REQUEST_LOG_WS_RECORDING_KEY,
   getRequestLogState,
   syncRecordingWithPatching,
   wipeLocalFallbackKeys,
@@ -106,7 +107,9 @@ export default defineBackground(() => {
       paused: state.isPaused ?? false,
       headerCount: countEnabledHeaders(selectProfile(state)),
       lockedElsewhere,
-      recording: log.recording[selectedIndex] === true,
+      recording:
+        log.recording[selectedIndex] === true ||
+        log.wsRecording[selectedIndex] === true,
     });
     await browser.action.setIcon({
       path: view.icon === 'grey' ? ICON_GREY : ICON_COLOR,
@@ -397,10 +400,14 @@ export default defineBackground(() => {
     if (
       (areaName === 'session' || areaName === 'local') &&
       (REQUEST_LOG_RECORDING_KEY in changes ||
+        REQUEST_LOG_WS_RECORDING_KEY in changes ||
         REQUEST_LOG_ENTRIES_KEY in changes)
     ) {
       void syncRequestLogHook();
-      if (REQUEST_LOG_RECORDING_KEY in changes) {
+      if (
+        REQUEST_LOG_RECORDING_KEY in changes ||
+        REQUEST_LOG_WS_RECORDING_KEY in changes
+      ) {
         void getRuntimeState().then(updateBadge);
       }
     }

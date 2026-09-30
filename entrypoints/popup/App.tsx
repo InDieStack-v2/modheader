@@ -20,6 +20,7 @@ import SettingsDialog from '~/components/SettingsDialog';
 import ImportDumpDialog from '~/components/ImportDumpDialog';
 import CloudBackupDialog from '~/components/CloudBackupDialog';
 import RequestLogList from '~/components/RequestLogList';
+import WebSocketList from '~/components/WebSocketList';
 import {
   MAX_SESSION_RULES,
   REQUEST_HEADER_NAMES,
@@ -46,12 +47,14 @@ import { profileHasEnabledRules } from '~/lib/request-match';
 import { visibleEntries } from '~/lib/resource-types';
 import {
   clearEntries,
+  clearSockets,
   dropAt,
   ensureSlots,
   getRequestLogState,
   insertSlot,
   remapOnReorder,
   setRecording,
+  setWsRecording,
   subscribeRequestLog,
   syncRecordingWithPatching,
 } from '~/lib/session-log';
@@ -90,15 +93,18 @@ export default function App() {
     buttonText?: string;
     kind?: 'undo-delete';
   } | null>(null);
-  const [workspaceTab, setWorkspaceTab] = useState<'headers' | 'logs'>(
-    'headers',
-  );
+  const [workspaceTab, setWorkspaceTab] = useState<
+    'headers' | 'logs' | 'websockets'
+  >('headers');
   const [logState, setLogState] = useState<RequestLogState>({
     recording: [],
+    wsRecording: [],
     entries: [],
     typeFilter: [],
+    sockets: [],
   });
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+  const [expandedSocketId, setExpandedSocketId] = useState<string | null>(null);
 
   const notify = (message: string) => setSnackbar({ message });
 
@@ -136,11 +142,15 @@ export default function App() {
   useEffect(() => {
     setWorkspaceTab('headers');
     setExpandedLogId(null);
+    setExpandedSocketId(null);
   }, [state?.selectedProfileIndex]);
 
   useEffect(() => {
     if (workspaceTab !== 'logs') {
       setExpandedLogId(null);
+    }
+    if (workspaceTab !== 'websockets') {
+      setExpandedSocketId(null);
     }
   }, [workspaceTab]);
 
@@ -190,6 +200,27 @@ export default function App() {
       ? state.selectedProfileIndex
       : 0;
   const profile = state.profiles[profileIndex];
+
+  // Logs and WebSockets record independently (spec 006 FR-008).
+  const logsRecording = logState.recording[profileIndex] === true;
+  const wsRecording = logState.wsRecording[profileIndex] === true;
+  const toggleRecording = () => {
+    if (!logsRecording && (recordingPaused || !recordingHasRules)) {
+      return;
+    }
+    void setRecording(profileIndex, !logsRecording);
+  };
+  const toggleWsRecording = () => {
+    if (!wsRecording && (recordingPaused || !recordingHasRules)) {
+      return;
+    }
+    void setWsRecording(profileIndex, !wsRecording);
+  };
+  const recordingLabel = logsRecording
+    ? wsRecording
+      ? 'Recording Logs+WS'
+      : 'Recording'
+    : 'Recording WS';
 
   // T021: every edit is written straight through to storage.local so the
   // background recompiles DNR rules immediately. Local state is updated
@@ -383,12 +414,12 @@ export default function App() {
               ❚❚
             </IconButton>
           )}
-          {logState.recording[profileIndex] ? (
+          {logsRecording || wsRecording ? (
             <Chip
               size="small"
               color="error"
-              label="Recording"
-              aria-label="Recording"
+              label={recordingLabel}
+              aria-label={recordingLabel}
             />
           ) : null}
           {state.lockedTabId != null ? (
@@ -473,7 +504,9 @@ export default function App() {
 
         <Tabs
           value={workspaceTab}
-          onChange={(_e, value: 'headers' | 'logs') => setWorkspaceTab(value)}
+          onChange={(_e, value: 'headers' | 'logs' | 'websockets') =>
+            setWorkspaceTab(value)
+          }
           aria-label="Workspace"
           sx={{ minHeight: 32, px: 0.5 }}
         >
@@ -485,9 +518,18 @@ export default function App() {
           <Tab
             value="logs"
             label={
-              logState.recording[profileIndex]
+              logsRecording
                 ? 'Logs · rec'
                 : 'Logs'
+            }
+            sx={{ minHeight: 32, py: 0 }}
+          />
+          <Tab
+            value="websockets"
+            label={
+              wsRecording
+                ? 'WebSockets · rec'
+                : 'WebSockets'
             }
             sx={{ minHeight: 32, py: 0 }}
           />
@@ -519,20 +561,28 @@ export default function App() {
             }
           />
         </Box>
+        ) : workspaceTab === 'websockets' ? (
+          <WebSocketList
+            recording={wsRecording}
+            canRecord={!recordingPaused && recordingHasRules}
+            connections={logState.sockets[profileIndex] ?? []}
+            onToggleRecording={toggleWsRecording}
+            onClear={() => {
+              setExpandedSocketId(null);
+              void clearSockets(profileIndex);
+            }}
+            onNotify={notify}
+            expandedId={expandedSocketId}
+            onExpand={setExpandedSocketId}
+          />
         ) : (
           <RequestLogList
             profileIndex={profileIndex}
-            recording={logState.recording[profileIndex] === true}
+            recording={logsRecording}
             canRecord={!recordingPaused && recordingHasRules}
             entries={logState.entries[profileIndex] ?? []}
             typeFilter={logState.typeFilter[profileIndex] ?? []}
-            onToggleRecording={() => {
-              const turningOn = logState.recording[profileIndex] !== true;
-              if (turningOn && (recordingPaused || !recordingHasRules)) {
-                return;
-              }
-              void setRecording(profileIndex, turningOn);
-            }}
+            onToggleRecording={toggleRecording}
             onClear={() => {
               setExpandedLogId(null);
               void clearEntries(profileIndex);

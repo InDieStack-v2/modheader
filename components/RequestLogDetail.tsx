@@ -8,7 +8,7 @@ export interface RequestLogDetailProps {
   onCopyBody?: (message: string) => void;
 }
 
-function Section({
+export function Section({
   title,
   children,
 }: {
@@ -39,7 +39,7 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function HeaderList({
+export function HeaderList({
   headers,
   waiting,
 }: {

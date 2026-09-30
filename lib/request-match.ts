@@ -7,6 +7,7 @@ import type {
   RequestLogEntry,
   TypeFilter,
   UrlFilter,
+  WsConnectionEntry,
 } from './types';
 
 /** Origin + path + query; drop userinfo and fragment (FR-014). */
@@ -100,6 +101,40 @@ export function profileWouldPatch(
   }
 
   return true;
+}
+
+/**
+ * A WebSocket counts as patched only when a request-header rule reaches its
+ * handshake; response-header rules have no observable effect on sockets.
+ */
+export function profilePatchesWebSocket(
+  profile: Profile,
+  input: {
+    url: string;
+    tabId: number | undefined;
+    paused: boolean;
+    lockedTabId: number | null;
+  },
+): boolean {
+  return (
+    hasEnabledPatchRule(profile.headers) &&
+    profileWouldPatch(profile, { ...input, resourceType: 'websocket' })
+  );
+}
+
+/** Newest unbound socket row for this tab + URL within 10s of the hook's open. */
+export function pickSocketForHook(
+  sockets: WsConnectionEntry[],
+  input: { tabId: number; url: string; at: number },
+): WsConnectionEntry | undefined {
+  const url = sanitizeLogUrl(input.url);
+  return sockets.find(
+    (row) =>
+      !row.hookKey &&
+      row.tabId === input.tabId &&
+      sanitizeLogUrl(row.url) === url &&
+      Math.abs(row.startedAt - input.at) <= BODY_MATCH_WINDOW_MS,
+  );
 }
 
 /** Overlay this profile's set/remove rules onto observed headers (research D2). */

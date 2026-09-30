@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
+  STANDARD_RESOURCE_TYPES,
   normalizeResourceType,
+  resourceTypesFor,
   toggleResourceType,
+  typeShortLabel,
   visibleEntries,
 } from '~/lib/resource-types';
 
 describe('normalizeResourceType', () => {
   it('maps unknown types to other', () => {
-    expect(normalizeResourceType('websocket')).toBe('other');
+    expect(normalizeResourceType('font')).toBe('other');
+    expect(normalizeResourceType('websocket')).toBe('websocket');
     expect(normalizeResourceType('xmlhttprequest')).toBe('xmlhttprequest');
   });
 });
@@ -62,5 +66,24 @@ describe('toggleResourceType', () => {
     expect(
       toggleResourceType(['main_frame', 'script'], 'script', 'capture'),
     ).toEqual(['main_frame']);
+  });
+});
+
+describe('websocket resource type (spec 006)', () => {
+  it('is a standard type labelled WS', () => {
+    expect(STANDARD_RESOURCE_TYPES).toContainEqual({
+      value: 'websocket',
+      label: 'WebSocket',
+      shortLabel: 'WS',
+    });
+    expect(typeShortLabel('websocket')).toBe('WS');
+  });
+
+  it('shows in profile capture filters but not in the Logs filter', () => {
+    const values = (mode: 'logs' | 'capture') =>
+      resourceTypesFor(mode).map((t) => t.value);
+    expect(values('capture')).toContain('websocket');
+    expect(values('logs')).not.toContain('websocket');
+    expect(values('logs')).toContain('xmlhttprequest');
   });
 });

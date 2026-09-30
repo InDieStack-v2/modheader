@@ -165,6 +165,125 @@
     };
   }
 
+  // --- WebSocket capture (spec 006, contracts/ws-hook-messages.md) ---
+  const WS_MAX = 65536;
+  const OrigWebSocket = globalThis.WebSocket;
+
+  const postWs = (payload) => {
+    try {
+      globalThis.postMessage({ type: 'modheader:ws', at: Date.now(), ...payload }, '*');
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const bytesToBase64 = (bytes) => {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(bin);
+  };
+
+  const toBytes = (data) => {
+    if (data instanceof ArrayBuffer) {
+      return new Uint8Array(data);
+    }
+    if (ArrayBuffer.isView(data)) {
+      return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    }
+    return null;
+  };
+
+  /** Serialize one frame; Blob payloads resolve asynchronously. */
+  const serializeFrame = async (data) => {
+    if (typeof data === 'string') {
+      const size = new TextEncoder().encode(data).length;
+      const truncated = data.length > WS_MAX;
+      return {
+        kind: 'text',
+        data: truncated ? data.slice(0, WS_MAX) : data,
+        size,
+        truncated,
+      };
+    }
+    let bytes = toBytes(data);
+    if (!bytes && typeof Blob !== 'undefined' && data instanceof Blob) {
+      bytes = new Uint8Array(await data.arrayBuffer());
+    }
+    if (!bytes) {
+      return null;
+    }
+    const truncated = bytes.length > WS_MAX;
+    return {
+      kind: 'binary',
+      data: bytesToBase64(truncated ? bytes.subarray(0, WS_MAX) : bytes),
+      size: bytes.length,
+      truncated,
+    };
+  };
+
+  if (typeof OrigWebSocket === 'function') {
+    let nextSocketId = 1;
+    const recordFrame = (socketId, seq, dir, data) => {
+      const at = Date.now();
+      void (async () => {
+        try {
+          const frame = await serializeFrame(data);
+          if (frame) {
+            postWs({ event: 'message', socketId, seq, dir, ...frame, at });
+          }
+        } catch {
+          /* ignore */
+        }
+      })();
+    };
+
+    class ModheaderWebSocket extends OrigWebSocket {
+      constructor(...args) {
+        super(...args);
+        const socketId = nextSocketId++;
+        let seq = 0;
+        this.__modheaderSocketId = socketId;
+        this.__modheaderNextSeq = () => ++seq;
+        try {
+          this.addEventListener('open', () => {
+            postWs({ event: 'open', socketId, url: this.url });
+          });
+          this.addEventListener('message', (event) => {
+            recordFrame(socketId, ++seq, 'received', event.data);
+          });
+          this.addEventListener('close', (event) => {
+            postWs({ event: 'close', socketId, code: event.code, reason: event.reason });
+          });
+          this.addEventListener('error', () => {
+            postWs({ event: 'error', socketId });
+          });
+        } catch {
+          /* ignore */
+        }
+      }
+
+      send(data) {
+        // Throws in CONNECTING state; only record frames that were accepted.
+        const result = super.send(data);
+        try {
+          recordFrame(this.__modheaderSocketId, this.__modheaderNextSeq(), 'sent', data);
+        } catch {
+          /* ignore */
+        }
+        return result;
+      }
+    }
+
+    try {
+      Object.defineProperty(ModheaderWebSocket, 'name', { value: 'WebSocket' });
+      globalThis.WebSocket = ModheaderWebSocket;
+    } catch {
+      /* ignore */
+    }
+  }
+
   const XHR = globalThis.XMLHttpRequest;
   if (!XHR || !XHR.prototype) {
     return;

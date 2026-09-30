@@ -15,6 +15,7 @@
 * Per-profile request log of patched traffic (opt-in recording; session-only, not exported)
 * Live log list with method, status, resource type, and URL; filter visible rows by type
 * Expand a log row for post-modification headers and request/response bodies; copy as cURL
+* WebSockets tab: patched WebSocket connections and their messages, viewable as Text, JSON, Hex, Base64, or MessagePack (session-only; sockets created in workers show handshake only)
 * Chrome and Firefox (Manifest V3); automatic migration from legacy ModHeader
 
 ## Forking and contribution

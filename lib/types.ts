@@ -74,12 +74,55 @@ export interface RequestLogEntry {
   responseBody?: BodyCapture;
 }
 
+/** One WebSocket frame captured by the page hook (spec 006). */
+export interface WsMessage {
+  /** Per-socket sequence from the hook; ordering key. */
+  seq: number;
+  at: number;
+  dir: 'sent' | 'received';
+  kind: 'text' | 'binary';
+  /** Text content, or Base64 of the bytes for `binary`. */
+  data: string;
+  /** Original size in bytes, before truncation. */
+  size: number;
+  truncated?: boolean;
+}
+
+export type WsConnectionState = 'connecting' | 'open' | 'closed' | 'failed';
+
+/** One captured WebSocket connection (spec 006 data-model.md). */
+export interface WsConnectionEntry {
+  /** webRequest requestId of the handshake. */
+  id: string;
+  profileIndex: number;
+  /** -1 when not from a tab. */
+  tabId: number;
+  startedAt: number;
+  url: string;
+  state: WsConnectionState;
+  closeCode?: number;
+  closeReason?: string;
+  requestHeaders: NameValue[];
+  responseHeaders?: NameValue[];
+  /** `<tabId>:<frameId>:<socketId>` once bound to the page hook. */
+  hookKey?: string;
+  /** false + open/closed = messages not available (e.g. worker socket). */
+  messagesObserved: boolean;
+  /** Oldest first. */
+  messages: WsMessage[];
+  droppedMessages: boolean;
+}
+
 /** Session-only (storage.session, or local fallback wiped on startup). */
 export interface RequestLogState {
   recording: boolean[];
+  /** WebSocket capture switch, independent of `recording`. */
+  wsRecording: boolean[];
   entries: RequestLogEntry[][];
   /** Per-profile visible types; [] = all types. */
   typeFilter: string[][];
+  /** Per-profile WebSocket connections, newest first. */
+  sockets: WsConnectionEntry[][];
 }
 
 /** Keys of chrome.storage.local (see data-model.md "RuntimeState"). */

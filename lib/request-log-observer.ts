@@ -4,17 +4,27 @@ import type { BodyCapture } from './types';
 import {
   overlayHeaderRules,
   pickEntryForBody,
+  pickSocketForHook,
+  profilePatchesWebSocket,
   profileWouldPatch,
   sanitizeLogUrl,
 } from './request-match';
 import {
   anyRecording,
   appendOrUpdateEntry,
+  appendWsMessages,
+  bindSocketHook,
   getRequestLogState,
   mergeLogEntry,
+  upsertSocket,
 } from './session-log';
 import { getRuntimeState } from './storage';
-import type { NameValue, RequestLogEntry } from './types';
+import type {
+  NameValue,
+  RequestLogEntry,
+  WsConnectionEntry,
+  WsMessage,
+} from './types';
 
 const HOOK_IDS = [
   'modheader-request-log-hook',
@@ -61,6 +71,7 @@ async function selectedContext() {
     index,
     profile: runtime.profiles[index],
     recording: log.recording[index] === true,
+    wsRecording: log.wsRecording[index] === true,
   };
 }
 
@@ -108,6 +119,87 @@ async function upsert(entry: RequestLogEntry): Promise<void> {
   const merged = current ? mergeLogEntry(current, entry) : entry;
   pending.set(merged.id, merged);
   await appendOrUpdateEntry(merged.profileIndex, merged);
+}
+
+// --- WebSocket handshakes (spec 006): routed to the socket store, never the HTTP log ---
+
+const pendingSockets = new Map<string, WsConnectionEntry>();
+
+async function ensureSocket(
+  details: WebRequestDetails,
+): Promise<WsConnectionEntry | null> {
+  const existing = pendingSockets.get(details.requestId);
+  if (existing) {
+    return existing;
+  }
+  const ctx = await selectedContext();
+  if (!ctx.wsRecording || !ctx.profile) {
+    return null;
+  }
+  const tabId = details.tabId >= 0 ? details.tabId : undefined;
+  if (
+    !profilePatchesWebSocket(ctx.profile, {
+      url: details.url,
+      tabId,
+      paused: ctx.runtime.isPaused ?? false,
+      lockedTabId: ctx.runtime.lockedTabId ?? null,
+    })
+  ) {
+    return null;
+  }
+  const entry: WsConnectionEntry = {
+    id: details.requestId,
+    profileIndex: ctx.index,
+    tabId: tabId ?? -1,
+    startedAt: Date.now(),
+    url: sanitizeLogUrl(details.url),
+    state: 'connecting',
+    requestHeaders: overlayHeaderRules([], ctx.profile.headers),
+    messagesObserved: false,
+    messages: [],
+    droppedMessages: false,
+  };
+  pendingSockets.set(entry.id, entry);
+  return entry;
+}
+
+type SocketEvent = 'before' | 'sendHeaders' | 'headers' | 'completed' | 'error';
+
+async function handleSocketEvent(
+  event: SocketEvent,
+  details: WebRequestDetails,
+): Promise<void> {
+  const existing = await ensureSocket(details);
+  if (!existing) {
+    return;
+  }
+  let next: WsConnectionEntry = existing;
+  if (event === 'sendHeaders') {
+    const { profile } = await selectedContext();
+    next = {
+      ...existing,
+      requestHeaders: overlayHeaderRules(
+        toNameValues(details.requestHeaders),
+        profile?.headers,
+      ),
+    };
+  } else if (event === 'headers') {
+    next = {
+      ...existing,
+      // 101 = handshake accepted; anything else means the upgrade was refused.
+      state: details.statusCode === 101 ? 'open' : 'failed',
+      responseHeaders: toNameValues(details.responseHeaders),
+    };
+  } else if (event === 'error') {
+    // Only applies while connecting (mergeWsState); later closes come from the page hook.
+    next = { ...existing, state: 'failed' };
+  }
+  if (event === 'completed' || event === 'error') {
+    pendingSockets.delete(details.requestId);
+  } else {
+    pendingSockets.set(next.id, next);
+  }
+  await upsertSocket(next.profileIndex, next);
 }
 
 function isInjectableUrl(url: string): boolean {
@@ -379,6 +471,180 @@ export async function handleLogBodyMessage(
   }
 }
 
+// --- WebSocket page-hook events (spec 006, contracts/ws-hook-messages.md) ---
+
+export interface WsHookMessage {
+  type?: string;
+  event?: 'open' | 'message' | 'close' | 'error';
+  socketId?: number;
+  at?: number;
+  url?: string;
+  seq?: number;
+  dir?: WsMessage['dir'];
+  kind?: WsMessage['kind'];
+  data?: string;
+  size?: number;
+  truncated?: boolean;
+  code?: number;
+  reason?: string;
+}
+
+export interface WsHookSender {
+  tab?: { id?: number };
+  frameId?: number;
+}
+
+const WS_FLUSH_MS = 250;
+const WS_BIND_RETRY_MS = 250;
+/** Sockets with no patched row; their later events are dropped cheaply. */
+const ignoredHooks = new Set<string>();
+/** hookKey → owning profile slot; rebuilt from storage after a worker restart. */
+const boundHooks = new Map<string, number>();
+// ponytail: up to WS_FLUSH_MS of messages live only here (constitution 2.1.0 coalescing exception).
+const wsBuffers = new Map<string, WsMessage[]>();
+let wsFlushTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function findBoundRow(
+  hookKey: string,
+): Promise<{ profileIndex: number; row: WsConnectionEntry } | null> {
+  const log = await getRequestLogState();
+  const cached = boundHooks.get(hookKey);
+  const slots = cached != null ? [cached] : log.sockets.map((_, i) => i);
+  for (const profileIndex of slots) {
+    const row = (log.sockets[profileIndex] ?? []).find(
+      (item) => item.hookKey === hookKey,
+    );
+    if (row) {
+      boundHooks.set(hookKey, profileIndex);
+      return { profileIndex, row };
+    }
+  }
+  return null;
+}
+
+async function flushWsKey(hookKey: string): Promise<void> {
+  const messages = wsBuffers.get(hookKey);
+  wsBuffers.delete(hookKey);
+  if (!messages?.length) {
+    return;
+  }
+  const profileIndex = boundHooks.get(hookKey);
+  if (profileIndex == null) {
+    return;
+  }
+  const log = await getRequestLogState();
+  if (log.wsRecording[profileIndex] !== true) {
+    return; // paused since these arrived
+  }
+  await appendWsMessages(profileIndex, hookKey, messages);
+}
+
+async function flushAllWs(): Promise<void> {
+  wsFlushTimer = undefined;
+  for (const hookKey of [...wsBuffers.keys()]) {
+    await flushWsKey(hookKey);
+  }
+}
+
+async function bindOpenedSocket(
+  hookKey: string,
+  tabId: number,
+  message: WsHookMessage,
+): Promise<void> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const ctx = await selectedContext();
+    if (!ctx.wsRecording) {
+      return;
+    }
+    const row = pickSocketForHook(ctx.log.sockets[ctx.index] ?? [], {
+      tabId,
+      url: message.url ?? '',
+      at: message.at ?? Date.now(),
+    });
+    if (row) {
+      boundHooks.set(hookKey, ctx.index);
+      await bindSocketHook(ctx.index, row.id, hookKey);
+      return;
+    }
+    // The handshake row may still be in the write queue; look once more.
+    await new Promise((resolve) => setTimeout(resolve, WS_BIND_RETRY_MS));
+  }
+  ignoredHooks.add(hookKey);
+}
+
+// Events of one socket must be handled in order: `open` binds the row that
+// the following `message` events append to.
+let wsEventChain: Promise<void> = Promise.resolve();
+
+export function handleWsHookMessage(
+  message: WsHookMessage,
+  sender: WsHookSender,
+): Promise<void> {
+  const run = () => processWsHookMessage(message, sender);
+  const queued = wsEventChain.then(run, run);
+  wsEventChain = queued.then(
+    () => undefined,
+    () => undefined,
+  );
+  return queued;
+}
+
+async function processWsHookMessage(
+  message: WsHookMessage,
+  sender: WsHookSender,
+): Promise<void> {
+  const tabId = sender.tab?.id;
+  if (message.type !== 'modheader:ws' || tabId == null || message.socketId == null) {
+    return;
+  }
+  const hookKey = `${tabId}:${sender.frameId ?? 0}:${message.socketId}`;
+  if (ignoredHooks.has(hookKey)) {
+    return;
+  }
+  if (message.event === 'open') {
+    await bindOpenedSocket(hookKey, tabId, message);
+    return;
+  }
+  const bound = await findBoundRow(hookKey);
+  if (!bound) {
+    return;
+  }
+  const log = await getRequestLogState();
+  if (log.wsRecording[bound.profileIndex] !== true) {
+    wsBuffers.delete(hookKey);
+    return;
+  }
+  if (message.event === 'message') {
+    const list = wsBuffers.get(hookKey) ?? [];
+    list.push({
+      seq: message.seq ?? 0,
+      at: message.at ?? Date.now(),
+      dir: message.dir === 'sent' ? 'sent' : 'received',
+      kind: message.kind === 'binary' ? 'binary' : 'text',
+      data: message.data ?? '',
+      size: message.size ?? 0,
+      ...(message.truncated ? { truncated: true } : {}),
+    });
+    wsBuffers.set(hookKey, list);
+    wsFlushTimer ??= setTimeout(() => void flushAllWs(), WS_FLUSH_MS);
+    return;
+  }
+  if (message.event === 'close') {
+    await flushWsKey(hookKey);
+    await upsertSocket(bound.profileIndex, {
+      ...bound.row,
+      state: 'closed',
+      closeCode: message.code,
+      closeReason: message.reason ?? '',
+    });
+    return;
+  }
+  if (message.event === 'error') {
+    // mergeWsState keeps an open/closed row; only a connecting row becomes failed.
+    await upsertSocket(bound.profileIndex, { ...bound.row, state: 'failed' });
+  }
+}
+
 export function startRequestLogObserver(): void {
   watchTabsForHook();
   const wr = (
@@ -451,6 +717,10 @@ export function startRequestLogObserver(): void {
   listen(
     wr.onBeforeRequest,
     (details) => {
+      if (details.type === 'websocket') {
+        void handleSocketEvent('before', details);
+        return;
+      }
       void (async () => {
         const existing = await ensureEntry(details);
         if (!existing) {
@@ -469,6 +739,10 @@ export function startRequestLogObserver(): void {
   listen(
     wr.onSendHeaders,
     (details) => {
+      if (details.type === 'websocket') {
+        void handleSocketEvent('sendHeaders', details);
+        return;
+      }
       void (async () => {
         const existing = await ensureEntry(details);
         if (!existing) {
@@ -489,6 +763,10 @@ export function startRequestLogObserver(): void {
   listen(
     wr.onHeadersReceived,
     (details) => {
+      if (details.type === 'websocket') {
+        void handleSocketEvent('headers', details);
+        return;
+      }
       void (async () => {
         const existing = await ensureEntry(details);
         if (!existing) {
@@ -509,6 +787,10 @@ export function startRequestLogObserver(): void {
 
   wr.onCompleted.addListener(
     (details) => {
+      if (details.type === 'websocket') {
+        void handleSocketEvent('completed', details);
+        return;
+      }
       void (async () => {
         const existing = await ensureEntry(details);
         if (!existing) {
@@ -526,6 +808,10 @@ export function startRequestLogObserver(): void {
   );
 
   wr.onErrorOccurred.addListener((details) => {
+    if (details.type === 'websocket') {
+      void handleSocketEvent('error', details);
+      return;
+    }
     void (async () => {
       const existing = await ensureEntry(details);
       if (!existing) {
@@ -536,7 +822,12 @@ export function startRequestLogObserver(): void {
     })();
   }, filter);
 
-  browser.runtime.onMessage.addListener((message: unknown) => {
-    void handleLogBodyMessage((message ?? {}) as LogBodyMessage);
+  browser.runtime.onMessage.addListener((message: unknown, sender) => {
+    const msg = (message ?? {}) as { type?: string };
+    if (msg.type === 'modheader:ws') {
+      void handleWsHookMessage(msg as WsHookMessage, sender as WsHookSender);
+      return;
+    }
+    void handleLogBodyMessage(msg as LogBodyMessage);
   });
 }

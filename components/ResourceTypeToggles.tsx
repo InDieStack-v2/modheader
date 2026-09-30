@@ -1,6 +1,6 @@
 import { Box, Chip } from '@mui/material';
 import {
-  STANDARD_RESOURCE_TYPES,
+  resourceTypesFor,
   toggleResourceType,
 } from '~/lib/resource-types';
 
@@ -35,7 +35,7 @@ export default function ResourceTypeToggles({
           aria-pressed={allOn}
         />
       ) : null}
-      {STANDARD_RESOURCE_TYPES.map((type) => {
+      {resourceTypesFor(mode).map((type) => {
         const selected = allOn ? false : value.includes(type.value);
         return (
           <Chip

@@ -6,8 +6,16 @@ export const STANDARD_RESOURCE_TYPES = [
   { value: 'image', label: 'Image', shortLabel: 'Img' },
   { value: 'object', label: 'Object', shortLabel: 'Obj' },
   { value: 'xmlhttprequest', label: 'XHR', shortLabel: 'XHR' },
+  { value: 'websocket', label: 'WebSocket', shortLabel: 'WS' },
   { value: 'other', label: 'Other', shortLabel: 'Other' },
 ] as const;
+
+/** WebSocket rows live in their own tab, so the Logs filter never offers it. */
+export function resourceTypesFor(mode: 'logs' | 'capture') {
+  return mode === 'logs'
+    ? STANDARD_RESOURCE_TYPES.filter((t) => t.value !== 'websocket')
+    : STANDARD_RESOURCE_TYPES;
+}
 
 const KNOWN: Set<string> = new Set(
   STANDARD_RESOURCE_TYPES.map((t) => t.value),

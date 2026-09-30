@@ -9,6 +9,14 @@
       return;
     }
     const data = event.data;
+    if (data && data.type === 'modheader:ws') {
+      try {
+        chrome.runtime.sendMessage({ ...data });
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
     if (!data || data.type !== 'modheader:request-log-body') {
       return;
     }

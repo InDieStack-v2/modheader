@@ -3,10 +3,13 @@ import { createProfile } from '~/lib/profiles';
 import {
   overlayHeaderRules,
   pickEntryForBody,
+  pickSocketForHook,
   profileHasEnabledRules,
+  profilePatchesWebSocket,
   profileWouldPatch,
   sanitizeLogUrl,
 } from '~/lib/request-match';
+import type { WsConnectionEntry } from '~/lib/types';
 
 describe('sanitizeLogUrl', () => {
   it('strips userinfo and fragment, keeps query', () => {
@@ -308,5 +311,85 @@ describe('pickEntryForBody', () => {
         'request',
       )?.id,
     ).toBe('open-req');
+  });
+});
+
+describe('profilePatchesWebSocket (spec 006)', () => {
+  const input = {
+    url: 'wss://api.example.com/ws',
+    tabId: 1,
+    paused: false,
+    lockedTabId: null as number | null,
+  };
+
+  it('needs an enabled request-header rule', () => {
+    const responseOnly = createProfile([]);
+    responseOnly.respHeaders = [{ enabled: true, name: 'X-Resp', value: '1' }];
+    expect(profilePatchesWebSocket(responseOnly, input)).toBe(false);
+
+    const withRequest = createProfile([]);
+    withRequest.headers = [{ enabled: true, name: 'X-Req', value: '1' }];
+    expect(profilePatchesWebSocket(withRequest, input)).toBe(true);
+  });
+
+  it('honours type filters and tab lock', () => {
+    const profile = createProfile([]);
+    profile.headers = [{ enabled: true, name: 'X-Req', value: '1' }];
+    profile.filters = [
+      { enabled: true, type: 'types', resourceType: ['xmlhttprequest'] },
+    ];
+    expect(profilePatchesWebSocket(profile, input)).toBe(false);
+    profile.filters = [
+      { enabled: true, type: 'types', resourceType: ['websocket'] },
+    ];
+    expect(profilePatchesWebSocket(profile, input)).toBe(true);
+    expect(profilePatchesWebSocket(profile, { ...input, lockedTabId: 2 })).toBe(
+      false,
+    );
+  });
+});
+
+describe('pickSocketForHook (spec 006)', () => {
+  function row(id: string, extra?: Partial<WsConnectionEntry>): WsConnectionEntry {
+    return {
+      id,
+      profileIndex: 0,
+      tabId: 1,
+      startedAt: 1_000,
+      url: 'ws://127.0.0.1:1/echo',
+      state: 'open',
+      requestHeaders: [],
+      messagesObserved: false,
+      messages: [],
+      droppedMessages: false,
+      ...extra,
+    };
+  }
+  const hook = { tabId: 1, url: 'ws://127.0.0.1:1/echo#x', at: 1_500 };
+
+  it('returns the newest unbound row for the same tab and URL', () => {
+    // Lists are newest first.
+    const picked = pickSocketForHook(
+      [row('new', { startedAt: 1_400 }), row('old', { startedAt: 1_000 })],
+      hook,
+    );
+    expect(picked?.id).toBe('new');
+  });
+
+  it('skips bound rows, other tabs, other URLs, and rows outside 10 s', () => {
+    expect(
+      pickSocketForHook(
+        [
+          row('bound', { hookKey: '1:0:1' }),
+          row('tab', { tabId: 2 }),
+          row('url', { url: 'ws://127.0.0.1:1/other' }),
+          row('late', { startedAt: 1_500 + 10_001 }),
+        ],
+        hook,
+      ),
+    ).toBeUndefined();
+    expect(pickSocketForHook([row('ok', { hookKey: undefined })], hook)?.id).toBe(
+      'ok',
+    );
   });
 });
