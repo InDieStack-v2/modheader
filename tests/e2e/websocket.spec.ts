@@ -45,14 +45,14 @@ async function openSocket(context: BrowserContext, pageUrl: string, wsUrl: strin
 }
 
 test.describe('WebSocket capture tab (spec 006)', () => {
-  test('third tab lists patched sockets, not in Logs', async ({
+  test('third tab lists patched sockets, not in Requests', async ({
     context,
     extensionId,
     echoServer,
   }) => {
     const popup = await setup(context, extensionId);
     const tabs = popup.getByRole('tablist', { name: 'Workspace' }).getByRole('tab');
-    await expect(tabs).toHaveText(['Headers', 'Logs', 'WebSockets']);
+    await expect(tabs).toHaveText(['Headers', 'Requests', 'WebSockets']);
     await expect(popup.getByRole('tab', { name: 'Headers' })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -235,8 +235,8 @@ test.describe('WebSocket capture tab (spec 006)', () => {
     await expect(wsRow).toHaveCount(0);
 
     // Independent toggles: WebSocket recording does not start Logs recording.
-    await expect(popup.getByRole('tab', { name: 'Logs', exact: true })).toBeVisible();
-    await popup.getByRole('tab', { name: 'Logs', exact: true }).click();
+    await expect(popup.getByRole('tab', { name: 'Requests', exact: true })).toBeVisible();
+    await popup.getByRole('tab', { name: 'Requests', exact: true }).click();
     await expect(popup.getByRole('button', { name: 'Start recording' })).toBeVisible();
     const httpPage = await context.newPage();
     await httpPage.goto(`${echoServer.url}/echo`);
@@ -249,7 +249,7 @@ test.describe('WebSocket capture tab (spec 006)', () => {
     await expect(popup.getByLabel('Recording Logs+WS')).toBeVisible();
     await popup.getByRole('button', { name: 'Pause recording' }).click();
     await expect(popup.getByRole('tab', { name: 'WebSockets · rec' })).toBeVisible();
-    await expect(popup.getByRole('tab', { name: 'Logs', exact: true })).toBeVisible();
+    await expect(popup.getByRole('tab', { name: 'Requests', exact: true })).toBeVisible();
     await expect(popup.getByLabel('Recording WS')).toBeVisible();
 
     // Tab lock: only the locked tab's sockets are captured.

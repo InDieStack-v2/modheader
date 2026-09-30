@@ -519,8 +519,8 @@ export default function App() {
             value="logs"
             label={
               logsRecording
-                ? 'Logs · rec'
-                : 'Logs'
+                ? 'Requests · rec'
+                : 'Requests'
             }
             sx={{ minHeight: 32, py: 0 }}
           />
