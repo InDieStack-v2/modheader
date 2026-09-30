@@ -98,6 +98,14 @@ function MessageBody({
 export default function WebSocketDetail({ connection, onNotify }: WebSocketDetailProps) {
   const [openSeq, setOpenSeq] = useState<number | null>(null);
   const { messages } = connection;
+  const copyText = async (text: string, what: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      onNotify?.(`Copied ${what}`);
+    } catch {
+      onNotify?.(`Could not copy ${what}`);
+    }
+  };
 
   let empty: string | null = null;
   if (!connection.messagesObserved && connection.state !== 'connecting') {
@@ -112,6 +120,13 @@ export default function WebSocketDetail({ connection, onNotify }: WebSocketDetai
       <Section title="Handshake">
         <Typography variant="caption" sx={{ display: 'block', wordBreak: 'break-all' }}>
           {connection.url}
+          <IconButton
+            size="small"
+            aria-label="Copy URL"
+            onClick={() => void copyText(connection.url, 'URL')}
+          >
+            <Typography variant="caption">Copy</Typography>
+          </IconButton>
         </Typography>
         {connection.state === 'closed' ? (
           <Typography variant="caption" sx={{ display: 'block' }}>
@@ -137,6 +152,16 @@ export default function WebSocketDetail({ connection, onNotify }: WebSocketDetai
           <Typography variant="caption" color="warning.main" sx={{ display: 'block' }}>
             Earlier messages were dropped.
           </Typography>
+        ) : null}
+        {messages.length ? (
+          <IconButton
+            size="small"
+            aria-label="Copy all messages"
+            // Raw payloads as JSON; binary stays Base64 (same as per-message copy).
+            onClick={() => void copyText(JSON.stringify(messages, null, 2), 'all messages')}
+          >
+            <Typography variant="caption">Copy all</Typography>
+          </IconButton>
         ) : null}
         {empty ? (
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
