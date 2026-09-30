@@ -1,6 +1,18 @@
 <!--
   Sync Impact Report
   ------------------
+  Version change: 2.0.0 -> 2.1.0 (MINOR: expanded guidance on runtime-state durability,
+  requested by feature 006-websocket-capture-tab analysis finding C1)
+  Modified sections:
+    - Technology & Platform Constraints: worker-restart rule now allows bounded write
+      coalescing (<= 1 s) for high-rate session capture
+  Principles: unchanged
+  Templates requiring updates: none (plan/spec/tasks templates reference principles generically)
+  Follow-up TODOs: none
+-->
+<!--
+  Sync Impact Report
+  ------------------
   Version change: 1.0.0 -> 2.0.0 (MAJOR: backward-incompatible redefinition of
   Principles I, IV, V, mandated by feature 001-modernize-react-migration)
   Modified principles:
@@ -94,6 +106,10 @@ two browsers against regressions.
   `chrome.storage.sync` with quota-safe chunking. Legacy `localStorage` is read only for
   one-time migration.
 - All runtime state MUST survive background worker restarts; no in-memory-only state.
+  Exception: high-rate session capture (e.g. WebSocket messages) MAY coalesce writes in
+  memory for at most 1 second before persisting. Losing at most that window on a worker
+  kill is acceptable; bindings and any state needed to interpret later events MUST
+  still be persisted immediately.
 - `manifest.json` version follows the extension's existing MAJOR.MINOR.PATCH scheme and
   is bumped only on releases, not per change.
 
@@ -122,4 +138,4 @@ All reviews MUST verify compliance with the principles above. Complexity that co
 with Principle III MUST be justified in writing. For runtime development guidance, use
 `README.md`.
 
-**Version**: 2.0.0 | **Ratified**: 2026-07-31 | **Last Amended**: 2026-07-31
+**Version**: 2.1.0 | **Ratified**: 2026-07-31 | **Last Amended**: 2026-09-29
