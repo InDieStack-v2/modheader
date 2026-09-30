@@ -130,6 +130,7 @@ function BodyPanel({
         <IconButton
           size="small"
           aria-label={`Copy ${label.toLowerCase()}`}
+          sx={{ borderRadius: 1, border: 1, borderColor: 'divider', px: 0.75, py: 0 }}
           onClick={() => void copy()}
           disabled={!state.canCopy}
         >

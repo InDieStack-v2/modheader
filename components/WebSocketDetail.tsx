@@ -68,7 +68,7 @@ function MessageBody({
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
-        <IconButton size="small" aria-label="Copy message" onClick={() => void copy()}>
+        <IconButton size="small" aria-label="Copy message" sx={{ borderRadius: 1, border: 1, borderColor: 'divider', px: 0.75, py: 0 }} onClick={() => void copy()}>
           <Typography variant="caption">Copy</Typography>
         </IconButton>
       </Box>
@@ -123,6 +123,7 @@ export default function WebSocketDetail({ connection, onNotify }: WebSocketDetai
           <IconButton
             size="small"
             aria-label="Copy URL"
+            sx={{ borderRadius: 1, border: 1, borderColor: 'divider', px: 0.75, py: 0 }}
             onClick={() => void copyText(connection.url, 'URL')}
           >
             <Typography variant="caption">Copy</Typography>
@@ -157,6 +158,7 @@ export default function WebSocketDetail({ connection, onNotify }: WebSocketDetai
           <IconButton
             size="small"
             aria-label="Copy all messages"
+            sx={{ borderRadius: 1, border: 1, borderColor: 'divider', px: 0.75, py: 0 }}
             // Raw payloads as JSON; binary stays Base64 (same as per-message copy).
             onClick={() => void copyText(JSON.stringify(messages, null, 2), 'all messages')}
           >

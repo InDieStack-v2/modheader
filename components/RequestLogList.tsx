@@ -239,6 +239,7 @@ export default function RequestLogList({
                   <IconButton
                     size="small"
                     aria-label="Copy cURL"
+                    sx={{ borderRadius: 1, border: 1, borderColor: 'divider', px: 0.75, py: 0 }}
                     onClick={() => void copyCurl(entry)}
                   >
                     <Typography variant="caption">cURL</Typography>
