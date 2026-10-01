@@ -39,7 +39,7 @@ describe('toolbarBadge', () => {
   it('shows a rec emoji while the selected profile is recording', () => {
     expect(toolbarBadge({ ...active, recording: true })).toEqual({
       icon: 'color',
-      text: '🔴REC',
+      text: 'REC',
       color: BADGE_COLOR_RECORDING,
     });
   });

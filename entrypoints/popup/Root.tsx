@@ -13,7 +13,7 @@ function buildTheme(mode: 'light' | 'dark') {
       // Synced with the browser theme via prefers-color-scheme.
       mode,
       // Brand red carried over from the legacy badge color (#db4343).
-      primary: { main: '#db4343' },
+      primary: { main: '#73B3E3' },
     },
     typography: {
       // Compact density (spec 002 US1): slightly smaller base type.
