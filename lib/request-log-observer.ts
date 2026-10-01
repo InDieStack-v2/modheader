@@ -15,7 +15,13 @@ import {
   appendWsMessages,
   bindSocketHook,
   getRequestLogState,
+  MAX_WS_BYTES,
+  MAX_WS_MESSAGES,
   mergeLogEntry,
+  REQUEST_LOG_ENTRIES_KEY,
+  REQUEST_LOG_RECORDING_KEY,
+  REQUEST_LOG_SOCKETS_KEY,
+  REQUEST_LOG_WS_RECORDING_KEY,
   upsertSocket,
 } from './session-log';
 import { getRuntimeState } from './storage';
@@ -48,6 +54,17 @@ interface WebRequestDetails {
 }
 
 const pending = new Map<string, RequestLogEntry>();
+const MAX_PENDING_REQUESTS = 500;
+
+function capPendingRequests(): void {
+  while (pending.size > MAX_PENDING_REQUESTS) {
+    const oldest = pending.keys().next().value;
+    if (oldest === undefined) {
+      return;
+    }
+    pending.delete(oldest);
+  }
+}
 
 function toNameValues(
   headers: { name: string; value?: string }[] | undefined,
@@ -78,6 +95,7 @@ async function selectedContext() {
 async function ensureEntry(
   details: WebRequestDetails,
 ): Promise<RequestLogEntry | null> {
+  capPendingRequests();
   const existing = pending.get(details.requestId);
   if (existing) {
     return existing;
@@ -111,23 +129,44 @@ async function ensureEntry(
     responseBody: { kind: 'unavailable' },
   };
   pending.set(entry.id, entry);
+  capPendingRequests();
   return entry;
 }
 
-async function upsert(entry: RequestLogEntry): Promise<void> {
+async function upsert(
+  entry: RequestLogEntry,
+  retainPending = pending.has(entry.id),
+): Promise<void> {
   const current = pending.get(entry.id);
   const merged = current ? mergeLogEntry(current, entry) : entry;
-  pending.set(merged.id, merged);
+  if (retainPending) {
+    pending.set(merged.id, merged);
+    capPendingRequests();
+  } else {
+    pending.delete(merged.id);
+  }
   await appendOrUpdateEntry(merged.profileIndex, merged);
 }
 
 // --- WebSocket handshakes (spec 006): routed to the socket store, never the HTTP log ---
 
 const pendingSockets = new Map<string, WsConnectionEntry>();
+const MAX_PENDING_SOCKETS = 500;
+
+function capPendingSockets(): void {
+  while (pendingSockets.size > MAX_PENDING_SOCKETS) {
+    const oldest = pendingSockets.keys().next().value;
+    if (oldest === undefined) {
+      return;
+    }
+    pendingSockets.delete(oldest);
+  }
+}
 
 async function ensureSocket(
   details: WebRequestDetails,
 ): Promise<WsConnectionEntry | null> {
+  capPendingSockets();
   const existing = pendingSockets.get(details.requestId);
   if (existing) {
     return existing;
@@ -160,6 +199,7 @@ async function ensureSocket(
     droppedMessages: false,
   };
   pendingSockets.set(entry.id, entry);
+  capPendingSockets();
   return entry;
 }
 
@@ -496,36 +536,213 @@ export interface WsHookSender {
 
 const WS_FLUSH_MS = 250;
 const WS_BIND_RETRY_MS = 250;
+const MAX_HOOK_CACHE_ENTRIES = 1000;
 /** Sockets with no patched row; their later events are dropped cheaply. */
 const ignoredHooks = new Set<string>();
 /** hookKey → owning profile slot; rebuilt from storage after a worker restart. */
 const boundHooks = new Map<string, number>();
-// ponytail: up to WS_FLUSH_MS of messages live only here (constitution 2.1.0 coalescing exception).
+// Messages live here only until the next coalesced flush. The caps also
+// protect the worker when storage writes are temporarily slower than traffic.
 const wsBuffers = new Map<string, WsMessage[]>();
+const wsBufferBytes = new Map<string, number>();
+const wsBufferDropped = new Set<string>();
+let wsBufferedBytes = 0;
 let wsFlushTimer: ReturnType<typeof setTimeout> | undefined;
+
+function rememberIgnoredHook(hookKey: string): void {
+  ignoredHooks.delete(hookKey);
+  ignoredHooks.add(hookKey);
+  while (ignoredHooks.size > MAX_HOOK_CACHE_ENTRIES) {
+    const oldest = ignoredHooks.values().next().value;
+    if (oldest === undefined) {
+      return;
+    }
+    ignoredHooks.delete(oldest);
+  }
+}
+
+function rememberBoundHook(hookKey: string, profileIndex: number): void {
+  boundHooks.delete(hookKey);
+  boundHooks.set(hookKey, profileIndex);
+  while (boundHooks.size > MAX_HOOK_CACHE_ENTRIES) {
+    const oldest = boundHooks.keys().next().value;
+    if (oldest === undefined) {
+      return;
+    }
+    boundHooks.delete(oldest);
+  }
+}
+
+function estimateBufferedMessageBytes(message: WsMessage): number {
+  return message.data.length + 128;
+}
+
+function clearWsBuffer(hookKey: string): void {
+  wsBufferedBytes = Math.max(
+    0,
+    wsBufferedBytes - (wsBufferBytes.get(hookKey) ?? 0),
+  );
+  wsBufferBytes.delete(hookKey);
+  wsBuffers.delete(hookKey);
+  wsBufferDropped.delete(hookKey);
+}
+
+function dropBufferedMessage(hookKey: string): boolean {
+  const list = wsBuffers.get(hookKey);
+  const message = list?.shift();
+  if (!message) {
+    return false;
+  }
+  const bytes = estimateBufferedMessageBytes(message);
+  wsBufferedBytes = Math.max(0, wsBufferedBytes - bytes);
+  wsBufferBytes.set(
+    hookKey,
+    Math.max(0, (wsBufferBytes.get(hookKey) ?? 0) - bytes),
+  );
+  wsBufferDropped.add(hookKey);
+  return true;
+}
+
+function dropOldestBufferedMessage(): boolean {
+  for (const [hookKey, list] of wsBuffers) {
+    if (list.length > 0) {
+      return dropBufferedMessage(hookKey);
+    }
+  }
+  return false;
+}
+
+function bufferWsMessage(hookKey: string, message: WsMessage): void {
+  const list = wsBuffers.get(hookKey) ?? [];
+  list.push(message);
+  wsBuffers.set(hookKey, list);
+  const bytes = estimateBufferedMessageBytes(message);
+  wsBufferedBytes += bytes;
+  wsBufferBytes.set(hookKey, (wsBufferBytes.get(hookKey) ?? 0) + bytes);
+
+  while (list.length > MAX_WS_MESSAGES) {
+    if (!dropBufferedMessage(hookKey)) {
+      break;
+    }
+  }
+  while (wsBufferedBytes > MAX_WS_BYTES) {
+    if (!dropOldestBufferedMessage()) {
+      break;
+    }
+  }
+}
+
+function toWsMessage(message: WsHookMessage): WsMessage {
+  return {
+    seq: message.seq ?? 0,
+    at: message.at ?? Date.now(),
+    dir: message.dir === 'sent' ? 'sent' : 'received',
+    kind: message.kind === 'binary' ? 'binary' : 'text',
+    data: message.data ?? '',
+    size: message.size ?? 0,
+    ...(message.truncated ? { truncated: true } : {}),
+  };
+}
+
+function scheduleWsFlush(): void {
+  wsFlushTimer ??= setTimeout(() => void flushAllWs(), WS_FLUSH_MS);
+}
+
+function takeWsBuffer(
+  hookKey: string,
+): { messages: WsMessage[]; dropped: boolean } {
+  const messages = wsBuffers.get(hookKey) ?? [];
+  const dropped = wsBufferDropped.has(hookKey);
+  clearWsBuffer(hookKey);
+  return { messages, dropped };
+}
+
+function releaseHook(hookKey: string): void {
+  ignoredHooks.delete(hookKey);
+  boundHooks.delete(hookKey);
+  clearWsBuffer(hookKey);
+}
+
+function resetEphemeralRecordCaches(): void {
+  pending.clear();
+  pendingSockets.clear();
+  boundHooks.clear();
+  ignoredHooks.clear();
+  for (const hookKey of [...wsBuffers.keys()]) {
+    clearWsBuffer(hookKey);
+  }
+}
+
+function watchSessionLogReset(): void {
+  const keys = [
+    REQUEST_LOG_RECORDING_KEY,
+    REQUEST_LOG_WS_RECORDING_KEY,
+    REQUEST_LOG_ENTRIES_KEY,
+    REQUEST_LOG_SOCKETS_KEY,
+  ];
+  browser.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'session' && areaName !== 'local') {
+      return;
+    }
+    const reset = keys.some((key) => {
+      const change = changes[key] as { newValue?: unknown } | undefined;
+      return (
+        change != null &&
+        (!('newValue' in change) || change.newValue === undefined)
+      );
+    });
+    if (reset) {
+      resetEphemeralRecordCaches();
+    }
+  });
+}
+
+function pruneBoundHooks(sockets: WsConnectionEntry[][]): void {
+  const live = new Set<string>();
+  for (const list of sockets) {
+    for (const row of list) {
+      if (row.hookKey) {
+        live.add(row.hookKey);
+      }
+    }
+  }
+  for (const hookKey of boundHooks.keys()) {
+    if (!live.has(hookKey)) {
+      boundHooks.delete(hookKey);
+    }
+  }
+}
 
 async function findBoundRow(
   hookKey: string,
 ): Promise<{ profileIndex: number; row: WsConnectionEntry } | null> {
   const log = await getRequestLogState();
+  pruneBoundHooks(log.sockets);
   const cached = boundHooks.get(hookKey);
-  const slots = cached != null ? [cached] : log.sockets.map((_, i) => i);
+  const slots = log.sockets.map((_, i) => i);
+  if (cached != null) {
+    const cachedAt = slots.indexOf(cached);
+    if (cachedAt >= 0) {
+      slots.splice(cachedAt, 1);
+      slots.unshift(cached);
+    }
+  }
   for (const profileIndex of slots) {
     const row = (log.sockets[profileIndex] ?? []).find(
       (item) => item.hookKey === hookKey,
     );
     if (row) {
-      boundHooks.set(hookKey, profileIndex);
+      rememberBoundHook(hookKey, profileIndex);
       return { profileIndex, row };
     }
   }
+  boundHooks.delete(hookKey);
   return null;
 }
 
 async function flushWsKey(hookKey: string): Promise<void> {
-  const messages = wsBuffers.get(hookKey);
-  wsBuffers.delete(hookKey);
-  if (!messages?.length) {
+  const { messages, dropped } = takeWsBuffer(hookKey);
+  if (messages.length === 0 && !dropped) {
     return;
   }
   const profileIndex = boundHooks.get(hookKey);
@@ -536,7 +753,7 @@ async function flushWsKey(hookKey: string): Promise<void> {
   if (log.wsRecording[profileIndex] !== true) {
     return; // paused since these arrived
   }
-  await appendWsMessages(profileIndex, hookKey, messages);
+  await appendWsMessages(profileIndex, hookKey, messages, dropped);
 }
 
 async function flushAllWs(): Promise<void> {
@@ -562,24 +779,46 @@ async function bindOpenedSocket(
       at: message.at ?? Date.now(),
     });
     if (row) {
-      boundHooks.set(hookKey, ctx.index);
+      rememberBoundHook(hookKey, ctx.index);
       await bindSocketHook(ctx.index, row.id, hookKey);
+      if (wsBuffers.has(hookKey)) {
+        scheduleWsFlush();
+      }
       return;
     }
     // The handshake row may still be in the write queue; look once more.
     await new Promise((resolve) => setTimeout(resolve, WS_BIND_RETRY_MS));
   }
-  ignoredHooks.add(hookKey);
+  clearWsBuffer(hookKey);
+  rememberIgnoredHook(hookKey);
 }
 
-// Events of one socket must be handled in order: `open` binds the row that
-// the following `message` events append to.
+// Open/close/error events stay ordered. Bound message frames go directly to
+// the coalescing buffer so a slow storage write cannot retain one Promise per
+// frame.
 let wsEventChain: Promise<void> = Promise.resolve();
 
 export function handleWsHookMessage(
   message: WsHookMessage,
   sender: WsHookSender,
 ): Promise<void> {
+  const tabId = sender.tab?.id;
+  if (
+    message.type === 'modheader:ws' &&
+    message.event === 'message' &&
+    tabId != null &&
+    message.socketId != null
+  ) {
+    const hookKey = `${tabId}:${sender.frameId ?? 0}:${message.socketId}`;
+    if (ignoredHooks.has(hookKey)) {
+      return Promise.resolve();
+    }
+    if (boundHooks.has(hookKey)) {
+      bufferWsMessage(hookKey, toWsMessage(message));
+      scheduleWsFlush();
+      return Promise.resolve();
+    }
+  }
   const run = () => processWsHookMessage(message, sender);
   const queued = wsEventChain.then(run, run);
   wsEventChain = queued.then(
@@ -599,6 +838,9 @@ async function processWsHookMessage(
   }
   const hookKey = `${tabId}:${sender.frameId ?? 0}:${message.socketId}`;
   if (ignoredHooks.has(hookKey)) {
+    if (message.event === 'close' || message.event === 'error') {
+      releaseHook(hookKey);
+    }
     return;
   }
   if (message.event === 'open') {
@@ -609,34 +851,40 @@ async function processWsHookMessage(
   if (!bound) {
     return;
   }
+  if (bound.row.state === 'closed' || bound.row.state === 'failed') {
+    releaseHook(hookKey);
+    return;
+  }
   const log = await getRequestLogState();
   if (log.wsRecording[bound.profileIndex] !== true) {
-    wsBuffers.delete(hookKey);
+    releaseHook(hookKey);
     return;
   }
   if (message.event === 'message') {
-    const list = wsBuffers.get(hookKey) ?? [];
-    list.push({
-      seq: message.seq ?? 0,
-      at: message.at ?? Date.now(),
-      dir: message.dir === 'sent' ? 'sent' : 'received',
-      kind: message.kind === 'binary' ? 'binary' : 'text',
-      data: message.data ?? '',
-      size: message.size ?? 0,
-      ...(message.truncated ? { truncated: true } : {}),
-    });
-    wsBuffers.set(hookKey, list);
-    wsFlushTimer ??= setTimeout(() => void flushAllWs(), WS_FLUSH_MS);
+    bufferWsMessage(hookKey, toWsMessage(message));
+    scheduleWsFlush();
     return;
   }
   if (message.event === 'close') {
-    await flushWsKey(hookKey);
-    await upsertSocket(bound.profileIndex, {
-      ...bound.row,
-      state: 'closed',
-      closeCode: message.code,
-      closeReason: message.reason ?? '',
-    });
+    try {
+      await flushWsKey(hookKey);
+      const latest = await getRequestLogState();
+      if (latest.wsRecording[bound.profileIndex] === true) {
+        const row = latest.sockets[bound.profileIndex]?.find(
+          (item) => item.hookKey === hookKey,
+        );
+        if (row) {
+          await upsertSocket(bound.profileIndex, {
+            ...row,
+            state: 'closed',
+            closeCode: message.code,
+            closeReason: message.reason ?? '',
+          });
+        }
+      }
+    } finally {
+      releaseHook(hookKey);
+    }
     return;
   }
   if (message.event === 'error') {
@@ -646,6 +894,7 @@ async function processWsHookMessage(
 }
 
 export function startRequestLogObserver(): void {
+  watchSessionLogReset();
   watchTabsForHook();
   const wr = (
     browser as unknown as {
@@ -800,8 +1049,7 @@ export function startRequestLogObserver(): void {
           ...existing,
           status: details.statusCode ?? existing.status,
         };
-        pending.delete(details.requestId);
-        await upsert(updated);
+        await upsert(updated, false);
       })();
     },
     filter,
@@ -817,8 +1065,7 @@ export function startRequestLogObserver(): void {
       if (!existing) {
         return;
       }
-      pending.delete(details.requestId);
-      await upsert({ ...existing, status: 'failed' });
+      await upsert({ ...existing, status: 'failed' }, false);
     })();
   }, filter);
 

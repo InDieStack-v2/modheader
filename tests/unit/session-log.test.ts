@@ -301,6 +301,15 @@ describe('session-log sockets (spec 006)', () => {
     expect((await getRequestLogState()).sockets[0]![0]!.messages).toEqual([]);
   });
 
+  it('marks messages dropped before a coalesced flush', async () => {
+    await upsertSocket(0, socket('a'));
+    await bindSocketHook(0, 'a', '1:0:1');
+    await appendWsMessages(0, '1:0:1', [], true);
+    const row = (await getRequestLogState()).sockets[0]![0]!;
+    expect(row.messages).toEqual([]);
+    expect(row.droppedMessages).toBe(true);
+  });
+
   it('trims oldest messages of the oldest connection past the 2 MB budget', async () => {
     const big = 'x'.repeat(60_000);
     await upsertSocket(0, socket('old'));
@@ -315,6 +324,21 @@ describe('session-log sockets (spec 006)', () => {
     expect(newer!.droppedMessages).toBe(false);
     expect(older!.droppedMessages).toBe(true);
     expect(older!.messages.at(-1)!.seq).toBe(39);
+  });
+
+  it('keeps the WebSocket budget global across profile slots', async () => {
+    const big = 'x'.repeat(60_000);
+    await ensureSlots(2);
+    for (let i = 0; i < 18; i++) {
+      await upsertSocket(0, socket(`p0-${i}`));
+      await bindSocketHook(0, `p0-${i}`, `k-p0-${i}`);
+      await appendWsMessages(0, `k-p0-${i}`, [msg(i, { data: big })]);
+      await upsertSocket(1, socket(`p1-${i}`, { profileIndex: 1 }));
+      await bindSocketHook(1, `p1-${i}`, `k-p1-${i}`);
+      await appendWsMessages(1, `k-p1-${i}`, [msg(i, { data: big })]);
+    }
+    const sockets = (await getRequestLogState()).sockets;
+    expect(JSON.stringify(sockets).length).toBeLessThanOrEqual(2 * 1024 * 1024);
   });
 
   it('clearSockets leaves entries, recording, typeFilter; clearEntries leaves sockets', async () => {

@@ -16,6 +16,7 @@
 * Live request log records show timestamp, method/status/type chips, URL, and a cURL action; filter visible rows by type
 * Expand a request log row for metadata, post-modification headers, request/response bodies, and one-click URL/body copy
 * WebSockets tab: connection detail shows state, tab scope, handshake headers, message observation/count, sequence-numbered messages, and decoded views (Text, JSON, Hex, Base64, MessagePack); session-only
+* Capture memory is bounded per session: 200 HTTP rows/profile with 64 KiB bodies and a 7 MiB HTTP budget; 50 WebSockets/profile with 500 messages/connection, 64 KiB frames, and a 2 MiB WebSocket budget
 * Chrome and Firefox (Manifest V3); automatic migration from legacy ModHeader
 
 ## Forking and contribution

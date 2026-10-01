@@ -207,10 +207,19 @@
         truncated,
       };
     }
-    let bytes = toBytes(data);
-    if (!bytes && typeof Blob !== 'undefined' && data instanceof Blob) {
-      bytes = new Uint8Array(await data.arrayBuffer());
+    if (typeof Blob !== 'undefined' && data instanceof Blob) {
+      const truncated = data.size > WS_MAX;
+      const bytes = new Uint8Array(
+        await data.slice(0, WS_MAX).arrayBuffer(),
+      );
+      return {
+        kind: 'binary',
+        data: bytesToBase64(bytes),
+        size: data.size,
+        truncated,
+      };
     }
+    const bytes = toBytes(data);
     if (!bytes) {
       return null;
     }
@@ -332,7 +341,7 @@
       } catch {
         /* ignore */
       }
-    });
+    }, { once: true });
     return origSend.apply(this, arguments);
   };
 })();

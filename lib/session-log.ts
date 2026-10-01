@@ -17,8 +17,8 @@ const MAX_ENTRIES = 200;
 /** HTTP entries + socket budget stay under the 10 MB storage.session quota. */
 const MAX_BYTES = 7 * 1024 * 1024;
 const MAX_SOCKETS = 50;
-const MAX_WS_MESSAGES = 500;
-const MAX_WS_BYTES = 2 * 1024 * 1024;
+export const MAX_WS_MESSAGES = 500;
+export const MAX_WS_BYTES = 2 * 1024 * 1024;
 
 type StorageArea = {
   get(
@@ -87,7 +87,7 @@ async function writeState(state: RequestLogState): Promise<void> {
 
 /** Sockets live under their own key so socket flushes never rewrite HTTP rows. */
 async function writeSockets(sockets: WsConnectionEntry[][]): Promise<void> {
-  await area().set({ [REQUEST_LOG_SOCKETS_KEY]: sockets });
+  await area().set({ [REQUEST_LOG_SOCKETS_KEY]: trimAllSockets(sockets) });
 }
 
 function pad(state: RequestLogState, count: number): RequestLogState {
@@ -388,6 +388,40 @@ function trimSockets(list: WsConnectionEntry[]): WsConnectionEntry[] {
   return out;
 }
 
+/** Apply the same socket budget across all profile slots. */
+function trimAllSockets(sockets: WsConnectionEntry[][]): WsConnectionEntry[][] {
+  const out = sockets.map((list) => trimSockets(list));
+  let total = JSON.stringify(out).length;
+  while (total > MAX_WS_BYTES) {
+    let messageVictim: WsConnectionEntry | undefined;
+    let oldestVictim: WsConnectionEntry | undefined;
+    let oldestList: WsConnectionEntry[] | undefined;
+    for (const list of out) {
+      for (const row of list) {
+        if (!oldestVictim || row.startedAt < oldestVictim.startedAt) {
+          oldestVictim = row;
+          oldestList = list;
+        }
+        if (
+          row.messages.length > 0 &&
+          (!messageVictim || row.startedAt < messageVictim.startedAt)
+        ) {
+          messageVictim = row;
+        }
+      }
+    }
+    if (messageVictim) {
+      messageVictim.messages.shift();
+      messageVictim.droppedMessages = true;
+    } else if (oldestVictim && oldestList) {
+      oldestList.splice(oldestList.indexOf(oldestVictim), 1);
+    } else {
+      break;
+    }
+    total = JSON.stringify(out).length;
+  }
+  return out;
+}
 function queueWrite(run: () => Promise<void>): Promise<void> {
   const queued = writeChain.then(run, run);
   writeChain = queued.then(
@@ -451,10 +485,11 @@ export async function appendWsMessages(
   profileIndex: number,
   hookKey: string,
   messages: WsMessage[],
+  droppedBeforeFlush = false,
 ): Promise<void> {
   await updateSockets(profileIndex, (list) => {
     const at = list.findIndex((row) => row.hookKey === hookKey);
-    if (at < 0 || messages.length === 0) {
+    if (at < 0 || (messages.length === 0 && !droppedBeforeFlush)) {
       return null;
     }
     const row = list[at]!;
@@ -463,7 +498,10 @@ export async function appendWsMessages(
     list[at] = {
       ...row,
       messages: kept,
-      droppedMessages: row.droppedMessages || kept.length < merged.length,
+      droppedMessages:
+        row.droppedMessages ||
+        droppedBeforeFlush ||
+        kept.length < merged.length,
     };
     return list;
   });
