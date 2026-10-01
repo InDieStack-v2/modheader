@@ -29,6 +29,13 @@ export interface CompileResult {
  */
 const NON_RE2_TOKENS = /\\[1-9]|\(\?[=!]|\(\?<[=!]/;
 
+/** HTTP field-name grammar used by DNR's `modifyHeaders` action. */
+const HEADER_NAME_RE = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+
+function isValidHeaderName(name: string): boolean {
+  return HEADER_NAME_RE.test(name);
+}
+
 export function isRe2Compatible(pattern: string): boolean {
   if (NON_RE2_TOKENS.test(pattern)) {
     return false;
@@ -103,10 +110,17 @@ export function compileProfileToRules(
   ): CompiledHeader[] => {
     const compiled: CompiledHeader[] = [];
     for (const row of rows ?? []) {
-      if (!row.enabled || row.name.trim() === '') {
-        continue; // disabled and empty-name rows are ignored
+      if (!row || !row.enabled) {
+        continue;
       }
-      const name = row.name.trim();
+      const name = typeof row.name === 'string' ? row.name.trim() : '';
+      if (name === '') {
+        continue; // empty-name rows are ignored
+      }
+      if (!isValidHeaderName(name)) {
+        unsupported.push({ header: name, reason: 'invalid-header-name' });
+        continue;
+      }
       if (isDenied(name)) {
         unsupported.push({ header: name, reason: 'denied-header' });
         continue;

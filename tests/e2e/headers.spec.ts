@@ -95,6 +95,31 @@ test.describe('header modification', () => {
     expect(headers['x-modheader-test']).toBe('request-value');
   });
 
+  test('skips invalid header names without rejecting valid rules', async ({
+    context,
+    echoServer,
+  }) => {
+    await seedProfiles(context, [
+      profileWith({
+        headers: [
+          { enabled: true, name: 'X Invalid', value: 'ignored' },
+          { enabled: true, name: 'X-ModHeader-Test', value: 'request-value' },
+        ],
+      }),
+    ]);
+    await waitForRules(context);
+
+    const page = await context.newPage();
+    await page.goto(`${echoServer.url}/echo`);
+    const headers = await page.evaluate(async (url: string) => {
+      const res = await fetch(url);
+      const body = (await res.json()) as { headers: Record<string, string> };
+      return body.headers;
+    }, `${echoServer.url}/echo`);
+    expect(headers['x-modheader-test']).toBe('request-value');
+    expect(headers['x invalid']).toBeUndefined();
+  });
+
   test('response header is added to incoming responses (T023)', async ({
     context,
     echoServer,

@@ -67,6 +67,8 @@ function noticeMessage(notice: UnsupportedNotice): string {
       return `URL filter "${notice.header}" is not RE2-compatible and will be skipped.`;
     case 'denied-header':
       return `Header "${notice.header}" cannot be modified by the browser and will be skipped.`;
+    case 'invalid-header-name':
+      return `Header "${notice.header}" is not a valid HTTP header name and will be skipped.`;
     case 'rule-limit':
       return `Rule limit (${MAX_SESSION_RULES}) exceeded — extra rules were dropped.`;
   }

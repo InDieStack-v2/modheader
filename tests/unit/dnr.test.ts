@@ -50,6 +50,23 @@ describe('compileProfileToRules — rule mapping (contracts/dnr-rules.md)', () =
     expect(rules[0]!.action.requestHeaders?.[0]?.header).toBe('X-Real');
   });
 
+  it('skips malformed header names before building DNR rules', () => {
+    const profile = makeProfile({
+      headers: [
+        header({ name: 'X Invalid' }),
+        header({ name: 'X:Invalid' }),
+        header({ name: 'X-Valid' }),
+      ],
+    });
+    const { rules, unsupported } = compileProfileToRules(profile, false, null);
+    expect(rules).toHaveLength(1);
+    expect(rules[0]!.action.requestHeaders?.[0]?.header).toBe('X-Valid');
+    expect(unsupported).toEqual([
+      { header: 'X Invalid', reason: 'invalid-header-name' },
+      { header: 'X:Invalid', reason: 'invalid-header-name' },
+    ]);
+  });
+
   it('empty value maps to remove', () => {
     const profile = makeProfile({ headers: [header({ value: '' })] });
     const { rules } = compileProfileToRules(profile, false, null);

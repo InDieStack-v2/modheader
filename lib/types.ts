@@ -149,6 +149,8 @@ export type UnsupportedReason =
   | 'response-append'
   | 'non-re2-filter'
   | 'denied-header'
+  /** Header name is not a valid HTTP field-name for DNR. */
+  | 'invalid-header-name'
   /** Rule count exceeded the session-rule cap; rules were truncated. */
   | 'rule-limit';
 

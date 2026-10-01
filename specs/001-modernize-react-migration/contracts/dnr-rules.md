@@ -15,7 +15,10 @@ behavior is a correctness contract verified by unit tests and the SC-004 regress
 `{ rules: chrome.declarativeNetRequest.Rule[], unsupported: UnsupportedNotice[] }`
 
 - `paused === true` → `rules: []`, `unsupported: []`.
-- Otherwise one rule per enabled, non-empty-named header in `headers` and `respHeaders`.
+- Otherwise one rule per enabled, valid, non-empty-named header in `headers` and `respHeaders`.
+
+Header names are trimmed and must use the HTTP field-name token grammar. Disabled,
+empty, or malformed names are skipped with an `invalid-header-name` notice.
 
 ## Rule mapping (per header)
 
@@ -32,7 +35,7 @@ behavior is a correctness contract verified by unit tests and the SC-004 regress
 
 ## UnsupportedNotice
 
-`{ header: string, reason: 'response-append' | 'non-re2-filter' | 'denied-header' }` —
+`{ header: string, reason: 'response-append' | 'non-re2-filter' | 'denied-header' | 'invalid-header-name' }` —
 rendered in the popup so degradation is user-visible (FR-008, SC-004). The denied-header
 list is produced by the implementation spike and stored in `lib/constants.ts`.
 
