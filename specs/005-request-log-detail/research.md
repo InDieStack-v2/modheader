@@ -87,7 +87,7 @@ No new permissions: `scripting`, `tabs`, and `<all_urls>` already ship.
 
 **Decision**:
 
-- Keep in-place single expand in `RequestLogList` (already wired via `expandedId`). Reset expand when leaving Logs, switching profile, clearing, or the id disappearing.
+- Keep in-place single expand in `RequestLogList` (already wired via `expandedId`). Reset expand when leaving Requests, switching profile, clearing, or the id disappearing.
 - Redesign `RequestLogDetail` into three labeled blocks: **Overview** (method, full URL, status, type, time), **Request** (headers + body + copy), **Response** (headers + body + copy).
 - Display formatting: `formatBodyForDisplay(text)` in `lib/body-format.ts` — if the stored text parses as a JSON object or array, pretty-print with 2-space indent; otherwise show as captured. Copy uses **stored** text (`FR-010`).
 - Copy body uses the existing snackbar path. Empty / binary / unavailable → “No text to copy.” Truncated → mention truncated.

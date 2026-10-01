@@ -9,12 +9,12 @@ Extends the 002 compact popup. No change to `ProfileTabBar` props.
 Under the existing compact toolbar (title, pause, tab-lock, more):
 
 ```text
-[ Headers | Logs ]
+[ Headers | Requests ]
 ```
 
 - MUI `Tabs`. Default `Headers` on popup open and whenever `selectedProfileIndex` changes.
 - `Headers` renders the current `FilterEditor` + request/response `HeaderTable`s unchanged.
-- `Logs` renders `RequestLogList`.
+- `Requests` renders `RequestLogList`.
 - Switching these tabs does not change the active profile, pause, or recording.
 
 ## Recording indicator (FR-022)
@@ -22,9 +22,9 @@ Under the existing compact toolbar (title, pause, tab-lock, more):
 In the compact status row, when `requestLogRecording[selectedIndex] === true`:
 
 - A small chip/dot labeled so it is distinct from the global **Paused** control (e.g. “Recording”).
-- Not clickable for pause. Pause remains on the Logs tab.
+- Not clickable for pause. Pause remains on the Requests tab.
 
-On the Logs tab label, a visual mark when that profile is recording (dot or count).
+On the Requests tab label, a visual mark when that profile is recording (dot or count).
 
 ## RequestLogList (`components/RequestLogList.tsx`)
 
@@ -64,4 +64,4 @@ export interface RequestLogDetailProps {
 
 ## Permissions copy
 
-If `webRequest` or `scripting` is missing at runtime (should not happen after install), Logs shows a single error state: recording cannot start. No silent failure.
+If `webRequest` or `scripting` is missing at runtime (should not happen after install), Requests shows a single error state: recording cannot start. No silent failure.

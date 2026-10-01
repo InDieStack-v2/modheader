@@ -97,6 +97,6 @@ Fallback: if `storage.session` is missing, use `storage.local` keys prefixed `re
 
 ## D10 — UI placement
 
-**Decision**: MUI `Tabs` in the workspace under the existing compact toolbar: **Headers** | **Logs**. Recording chip in the existing status row (next to Pause / Tab lock), visible from Headers (FR-022). Copy-cURL is an icon button on the collapsed row. Default tab is Headers on popup open and on profile switch (FR-002).
+**Decision**: MUI `Tabs` in the workspace under the existing compact toolbar: **Headers** | **Requests**. Recording chip in the existing status row (next to Pause / Tab lock), visible from Headers (FR-022). Copy-cURL is an icon button on the collapsed row. Default tab is Headers on popup open and on profile switch (FR-002).
 
 **Rationale**: Matches spec and 002 compact chrome. No new layout system.

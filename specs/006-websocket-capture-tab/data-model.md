@@ -75,4 +75,4 @@ Auto-detect rules are in [research.md R6](research.md#r6-decoding-views-fr-014--
 
 ## ResourceType list (changed)
 
-`STANDARD_RESOURCE_TYPES` gains `websocket` (label `WebSocket`, short label `WS`). It is shown in the profile filter and hidden from the Logs type filter.
+`STANDARD_RESOURCE_TYPES` gains `websocket` (label `WebSocket`, short label `WS`). It is shown in the profile filter and hidden from the Requests type filter.

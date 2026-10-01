@@ -10,7 +10,7 @@ export const STANDARD_RESOURCE_TYPES = [
   { value: 'other', label: 'Other', shortLabel: 'Other' },
 ] as const;
 
-/** WebSocket rows live in their own tab, so the Logs filter never offers it. */
+/** WebSocket rows live in their own tab, so the Requests filter never offers it. */
 export function resourceTypesFor(mode: 'logs' | 'capture') {
   return mode === 'logs'
     ? STANDARD_RESOURCE_TYPES.filter((t) => t.value !== 'websocket')

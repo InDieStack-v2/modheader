@@ -6,7 +6,7 @@
 
 - **Decision**: Reuse the existing `webRequest` observer (`lib/request-log-observer.ts`). Events with `details.type === 'websocket'` are routed to a new WebSocket store instead of the HTTP log. `onSendHeaders` gives handshake request headers (with `extraHeaders`, as today). `onHeadersReceived` gives status `101`, which means the connection is `open`. `onErrorOccurred` **before** 101 means `failed`.
 - **Rationale**: Both Chrome and Firefox report ws/wss handshakes through `webRequest` with type `websocket`, and `<all_urls>` covers ws/wss. The observer already builds post-modification header snapshots with `overlayHeaderRules`. `profileWouldPatch(profile, {resourceType: 'websocket', ...})` already answers "patched?" (FR-002).
-- **Current bug this fixes**: handshakes are logged today as HTTP rows typed `other` (because `normalizeResourceType('websocket')` returns `'other'`). FR-003 requires moving them out of Logs.
+- **Current bug this fixes**: handshakes are logged today as HTTP rows typed `other` (because `normalizeResourceType('websocket')` returns `'other'`). FR-003 requires moving them out of Requests.
 - **Unverified**: whether each browser fires `onCompleted` or `onErrorOccurred` **after** a 101 when the socket later closes. **Handling**: once a row is `open`, later webRequest completion or error events never change its state. Close state comes only from the page hook (R2). The spike task in tasks.md checks both browsers with the e2e echo server.
 - **Alternatives rejected**: the `debugger` API (Chrome-only, shows a warning banner, needs a new permission, breaks Principle II); a `webRequest` frame API (doesn't exist).
 

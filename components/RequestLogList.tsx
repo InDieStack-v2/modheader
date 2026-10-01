@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Box, Button, IconButton, TextField, Typography } from '@mui/material';
+import { Box, Button, Chip, IconButton, TextField, Typography } from '@mui/material';
 import { matchesRequest } from '~/lib/log-search';
 import type { RequestLogEntry } from '~/lib/types';
 import { toCurl } from '~/lib/curl';
@@ -125,7 +124,7 @@ export default function RequestLogList({
         <ResourceTypeToggles
           mode="logs"
           value={typeFilter}
-          aria-label="Log resource types"
+          aria-label="Request resource types"
           onChange={(next) => {
             void setTypeFilter(profileIndex, next);
           }}
@@ -153,75 +152,94 @@ export default function RequestLogList({
               <Box
                 key={entry.id}
                 sx={{
-                  borderBottom: 1,
-                  borderColor: 'divider',
-                  py: 0.5,
+                  mb: 0.5,
+                  px: 0.75,
+                  py: 0.75,
+                  border: 1,
+                  borderColor: open ? 'primary.main' : 'divider',
+                  borderRadius: 1,
+                  bgcolor: open ? 'action.selected' : 'background.paper',
+                  transition: 'border-color 120ms ease, background-color 120ms ease',
+                  '&:hover': {
+                    borderColor: open ? 'primary.main' : 'text.secondary',
+                  },
                 }}
               >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.75,
-                    minWidth: 0,
-                  }}
-                >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
                   <Box
                     component="button"
                     type="button"
                     onClick={() => onExpand?.(open ? null : entry.id)}
                     aria-expanded={open}
                     aria-label={`Log ${entry.method} ${entry.resourceType} ${entry.url}`}
-                    style={{
+                    sx={{
                       flex: 1,
                       minWidth: 0,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 8,
+                      gap: 0.75,
                       textAlign: 'left',
-                      background: 'none',
+                      background: 'transparent',
                       border: 0,
-                      padding: 0,
+                      p: 0,
                       cursor: 'pointer',
                       font: 'inherit',
                       color: 'inherit',
+                      '&:focus-visible': {
+                        outline: '2px solid',
+                        outlineColor: 'primary.main',
+                        outlineOffset: 2,
+                        borderRadius: 0.5,
+                      },
                     }}
                   >
                     <Typography
                       variant="caption"
                       color="text.secondary"
-                      sx={{ flexShrink: 0 }}
+                      title={new Date(entry.startedAt).toLocaleString()}
+                      sx={{ flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
                     >
                       {formatTime(entry.startedAt)}
                     </Typography>
-                    <Typography
+                    <Chip
                       component="span"
-                      variant="caption"
-                      sx={{ fontWeight: 700, flexShrink: 0, minWidth: 36 }}
-                    >
-                      {entry.method}
-                    </Typography>
-                    <Typography
+                      size="small"
+                      label={entry.method}
+                      sx={{
+                        height: 20,
+                        flexShrink: 0,
+                        fontWeight: 700,
+                        '& .MuiChip-label': { px: 0.75 },
+                      }}
+                    />
+                    <Chip
                       component="span"
-                      variant="caption"
+                      size="small"
+                      variant="outlined"
+                      label={statusLabel(entry.status)}
                       aria-label={`Status ${statusLabel(entry.status)}`}
                       sx={{
-                        color: statusColor(entry.status),
-                        fontWeight: 600,
+                        height: 20,
                         flexShrink: 0,
-                        minWidth: 40,
+                        color: statusColor(entry.status),
+                        borderColor: statusColor(entry.status),
+                        '& .MuiChip-label': { px: 0.75 },
                       }}
-                    >
-                      {statusLabel(entry.status)}
-                    </Typography>
-                    <Typography
+                    />
+                    <Chip
                       component="span"
-                      variant="caption"
+                      size="small"
+                      variant="outlined"
+                      label={typeLabel}
                       aria-label={`Type ${typeLabel}`}
-                      sx={{ flexShrink: 0, color: 'text.secondary' }}
-                    >
-                      {typeLabel}
-                    </Typography>
+                      sx={{
+                        height: 20,
+                        flexShrink: 0,
+                        color: 'text.secondary',
+                        borderColor: 'divider',
+                        '& .MuiChip-label': { px: 0.75 },
+                      }}
+                    />
                     <Typography
                       component="span"
                       variant="caption"
@@ -229,17 +247,33 @@ export default function RequestLogList({
                       title={entry.url}
                       sx={{
                         fontFamily: 'monospace',
+                        fontWeight: 500,
                         flex: 1,
                         minWidth: 0,
                       }}
                     >
                       {entry.url}
                     </Typography>
+                    <Typography
+                      component="span"
+                      aria-hidden="true"
+                      sx={{ color: 'text.secondary', flexShrink: 0, lineHeight: 1 }}
+                    >
+                      {open ? '▴' : '▾'}
+                    </Typography>
                   </Box>
                   <IconButton
                     size="small"
                     aria-label="Copy cURL"
-                    sx={{ borderRadius: 1, border: 1, borderColor: 'divider', px: 0.75, py: 0 }}
+                    title="Copy cURL"
+                    sx={{
+                      borderRadius: 1,
+                      border: 1,
+                      borderColor: 'divider',
+                      px: 0.75,
+                      py: 0,
+                      flexShrink: 0,
+                    }}
                     onClick={() => void copyCurl(entry)}
                   >
                     <Typography variant="caption">cURL</Typography>

@@ -62,7 +62,7 @@ Background maps this onto `BodyCapture` via `captureText` / explicit kind, then 
 
 | Name | Lifetime | Rules |
 |------|----------|-------|
-| Expanded entry id | Popup React state | At most one. Cleared on Logs leave, profile switch, clear, or id no longer visible. |
+| Expanded entry id | Popup React state | At most one. Cleared on Requests leave, profile switch, clear, or id no longer visible. |
 
 ## Validation (additions)
 

@@ -12,33 +12,41 @@
 
 ### Session 2026-09-29
 
-- Q: Where should the WebSocket capture appear: as a third tab inside the popup, or as its own full browser tab? → A: A third tab in the popup's profile area (Headers, Logs, WebSockets)
-- Q: Should WebSocket capture use the same start/pause recording button as the Logs tab, or have its own button? → A: Shared: one start/pause button per profile records both HTTP requests and WebSockets *(superseded 2026-09-30, see below)*
-- Q: Should the WebSockets tab list only connections this profile actually changed headers on, or every connection that matches the profile's filters? → A: Only connections where at least one enabled request-header rule was applied to the handshake (same rule as Logs)
+- Q: Where should the WebSocket capture appear: as a third tab inside the popup, or as its own full browser tab? → A: A third tab in the popup's profile area (Headers, Requests, WebSockets)
+- Q: Should WebSocket capture use the same start/pause recording button as the Requests tab, or have its own button? → A: Shared: one start/pause button per profile records both HTTP requests and WebSockets *(superseded 2026-09-30, see below)*
+- Q: Should the WebSockets tab list only connections this profile actually changed headers on, or every connection that matches the profile's filters? → A: Only connections where at least one enabled request-header rule was applied to the handshake (same rule as Requests)
 - Q: Which decoded views should a WebSocket message offer? → A: Text, JSON (formatted), Hex, Base64, and MessagePack (decoded to readable JSON)
 - Q: When the user opens a message, should the view be chosen automatically from its content, or should it always start in one fixed view? → A: Auto-detect (text → JSON if valid, else Text; binary → MessagePack if it decodes cleanly, else Hex); the user can switch views
 
 ### Session 2026-09-30
 
-- Q: Should WebSocket capture keep sharing the Logs recording button? → A: No. Logs and WebSockets each have their own independent start/pause control per profile. Supersedes the 2026-09-29 "shared" answer.
+- Q: Should WebSocket capture keep sharing the Requests recording button? → A: No. Requests and WebSockets each have their own independent start/pause control per profile. Supersedes the 2026-09-29 "shared" answer.
+
+### Session 2026-10-01
+
+- The HTTP request-log workspace tab is labeled **Requests**. “Request log” remains the feature and storage term.
+
+### Session 2026-10-02
+
+- Enhanced WebSocket detail shows a connection summary (state, start time, tab scope, message observation, and count), keeps handshake headers separate, and labels each message with direction and its sequence number. The stored WebSocket URL remains copyable from the summary.
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Dedicated WebSockets Tab in the Profile (Priority: P1)
 
-The profile content area gains a third tab, **WebSockets**, next to **Headers** and **Logs**. It lists WebSocket connections that this profile has patched (its enabled filters match the connection and at least one of its enabled request-header rules was applied to the connection handshake). WebSocket traffic is kept apart from the HTTP request log so a long-lived socket with many messages does not flood the Logs list, and so HTTP rows stay scannable.
+The profile content area gains a third tab, **WebSockets**, next to **Headers** and **Requests**. It lists WebSocket connections that this profile has patched (its enabled filters match the connection and at least one of its enabled request-header rules was applied to the connection handshake). WebSocket traffic is kept apart from the HTTP request log so a long-lived socket with many messages does not flood the Requests list, and so HTTP rows stay scannable.
 
 **Why this priority**: The feature asks for a separate place for WebSocket capture. Without the tab and connection list, nothing else in this feature is visible.
 
-**Independent Test**: With a profile that adds a request header and has no filters, start recording on the WebSockets tab, open a page that connects a WebSocket, and confirm one row for that connection appears. Confirm the Logs tab does not show the socket.
+**Independent Test**: With a profile that adds a request header and has no filters, start recording on the WebSockets tab, open a page that connects a WebSocket, and confirm one row for that connection appears. Confirm the Requests tab does not show the socket.
 
 **Acceptance Scenarios**:
 
-1. **Given** the popup is open on a profile, **When** the user looks at the profile content area, **Then** they see three tabs: Headers, Logs, and WebSockets, and Headers is selected by default.
+1. **Given** the popup is open on a profile, **When** the user looks at the profile content area, **Then** they see three tabs: Headers, Requests, and WebSockets, and Headers is selected by default.
 2. **Given** WebSocket recording is on and a page opens a WebSocket that this profile patches, **When** the user opens the WebSockets tab, **Then** a row shows the time, the connection URL, and the connection state (connecting, open, closed with code, or failed).
 3. **Given** a WebSocket connection is not matched by the profile's filters, or is matched but no header rule applies to it, **When** it connects, **Then** it does not appear on the WebSockets tab.
-4. **Given** a WebSocket was captured, **When** the user opens the Logs tab, **Then** the WebSocket connection is not listed there.
-5. **Given** the user switches between Headers, Logs, and WebSockets, **When** they return to Headers, **Then** editor contents and the active profile are unchanged, and header modification is unaffected.
+4. **Given** a WebSocket was captured, **When** the user opens the Requests tab, **Then** the WebSocket connection is not listed there.
+5. **Given** the user switches between Headers, Requests, and WebSockets, **When** they return to Headers, **Then** editor contents and the active profile are unchanged, and header modification is unaffected.
 
 ---
 
@@ -67,17 +75,17 @@ Selecting a connection shows its handshake request headers (after this profile's
 
 ### User Story 3 - Independent Recording Control and Clearing (Priority: P2)
 
-Logs and WebSockets are recorded independently. Each tab has its own start/pause control for the active profile, its own recording indicator, and its own clear action. Starting or pausing one never changes the other, so a user can watch only sockets, only HTTP requests, or both.
+Requests and WebSockets are recorded independently. Each tab has its own start/pause control for the active profile, its own recording indicator, and its own clear action. Starting or pausing one never changes the other, so a user can watch only sockets, only HTTP requests, or both.
 
 **Why this priority**: A chatty socket or a busy page can make one capture noisy while the other is wanted. Two independent controls let the user record only what they need, and match the "separate tab" mental model.
 
-**Independent Test**: Start recording on WebSockets only and confirm a socket is captured but HTTP requests are not. Start Logs recording and confirm both are captured. Pause Logs and confirm sockets are still captured. Clear on WebSockets and confirm HTTP log rows remain.
+**Independent Test**: Start recording on WebSockets only and confirm a socket is captured but HTTP requests are not. Start Requests recording and confirm both are captured. Pause Requests and confirm sockets are still captured. Clear on WebSockets and confirm HTTP request rows remain.
 
 **Acceptance Scenarios**:
 
-1. **Given** WebSocket recording is off for the profile, **When** a patched WebSocket connects, **Then** nothing is captured, even if Logs recording is on.
-2. **Given** the user starts recording on the WebSockets tab, **When** they open the Logs tab, **Then** Logs recording is still off, and HTTP requests are not captured until the user starts it there.
-3. **Given** Logs recording is on and WebSocket recording is off, **When** HTTP requests and a WebSocket connection occur, **Then** only the HTTP requests are captured, and vice versa.
+1. **Given** WebSocket recording is off for the profile, **When** a patched WebSocket connects, **Then** nothing is captured, even if Requests recording is on.
+2. **Given** the user starts recording on the WebSockets tab, **When** they open the Requests tab, **Then** Requests recording is still off, and HTTP requests are not captured until the user starts it there.
+3. **Given** Requests recording is on and WebSocket recording is off, **When** HTTP requests and a WebSocket connection occur, **Then** only the HTTP requests are captured, and vice versa.
 4. **Given** WebSocket recording is paused while a captured connection is still open, **When** further messages are exchanged, **Then** they are not added, and already-captured messages remain.
 5. **Given** captured connections exist, **When** the user clears the WebSockets tab, **Then** all captured WebSocket data for that profile is removed, the HTTP request log is untouched, and both recording states are unchanged.
 6. **Given** captured WebSocket data exists, **When** the browser fully restarts, **Then** it is discarded and WebSocket recording is off, matching the request log.
@@ -103,9 +111,9 @@ Logs and WebSockets are recorded independently. Each tab has its own start/pause
 
 ### Functional Requirements
 
-- **FR-001**: The profile content area MUST present three tabs: Headers (default), Logs, and WebSockets.
+- **FR-001**: The profile content area MUST present three tabs: Headers (default), Requests, and WebSockets.
 - **FR-002**: While a profile's WebSocket recording is on, the system MUST capture each WebSocket connection that (a) matches the profile's enabled filters, including its resource-type filter when set, (b) is in scope of global pause and tab-lock, and (c) had at least one of the profile's enabled request-header rules applied to its handshake.
-- **FR-003**: WebSocket connections MUST NOT appear in the Logs tab, and HTTP requests MUST NOT appear in the WebSockets tab.
+- **FR-003**: WebSocket connections MUST NOT appear in the Requests tab, and HTTP requests MUST NOT appear in the WebSockets tab.
 - **FR-004**: Each captured connection MUST record start time, URL (origin + path + query; credentials and fragment dropped), connection state (connecting, open, closed with code and reason, failed), and the post-modification handshake request headers, shown in full with no redaction.
 - **FR-005**: Each captured connection MUST record the messages exchanged after capture started, in order, each with direction, timestamp, byte size, and and its content (text for text messages, raw bytes for binary messages).
 - **FR-006**: JSON text messages MUST be shown pretty-printed, and the user MUST be able to copy a message's original content.
@@ -132,13 +140,13 @@ Logs and WebSockets are recorded independently. Each tab has its own start/pause
 - **SC-002**: 100% of text messages exchanged on a patched connection while recording (up to the per-connection limit or the WebSocket storage budget, whichever is reached first) appear in the detail view, in order, with correct direction.
 - **SC-003**: New messages on an open connection appear in the open WebSockets tab within 2 seconds in at least 95% of cases.
 - **SC-004**: A connection exchanging 1,000 messages does not make the popup noticeably slow: switching tabs and opening the connection each take under 1 second.
-- **SC-005**: Adding WebSocket capture causes zero changes to which HTTP requests appear on the Logs tab for the same traffic, other than WebSocket connection requests no longer appearing there.
+- **SC-005**: Adding WebSocket capture causes zero changes to which HTTP requests appear on the Requests tab for the same traffic, other than WebSocket connection requests no longer appearing there.
 - **SC-006**: All acceptance scenarios pass in both Chrome and Firefox.
 - **SC-007**: For a sample set of JSON, plain text, MessagePack, and raw binary messages, 100% open in the expected auto-detected view and every supported view either shows the correct decoded content or a "cannot decode" notice.
 
 ## Assumptions
 
-- "Separate tab" means a third tab inside the popup's profile content area, next to Headers and Logs (confirmed in Clarifications). A standalone browser-tab view is out of scope.
+- "Separate tab" means a third tab inside the popup's profile content area, next to Headers and Requests (confirmed in Clarifications). A standalone browser-tab view is out of scope. The HTTP tab's visible label is Requests; underlying request-log terminology is unchanged.
 - WebSocket recording has its own toggle, independent of request-log recording (confirmed in Clarifications, 2026-09-30). Existing profiles and the request-log control keep behaving as in feature 003.
 - Only connections this profile patches are captured, consistent with the request log (confirmed in Clarifications). Capturing filter-matched but unpatched WebSockets is out of scope.
 - Caps: 50 connections per profile, 500 most recent messages per connection, 64 KB of content (text or binary) per message, all within the existing session storage budget for logs.

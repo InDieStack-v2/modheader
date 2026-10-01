@@ -22,15 +22,15 @@ npm run test:e2e      # includes tests/e2e/request-log.spec.ts
 ## Manual scenario 1 — Workspace tabs (US1)
 
 1. `npm run dev`, load `.output/chrome-mv3`, open the popup.
-2. **Expected**: workspace shows **Headers | Logs**; Headers is selected; filters and header tables work as today.
-3. Switch to Logs and back. **Expected**: editor content intact; active profile unchanged.
+2. **Expected**: workspace shows **Headers | Requests**; Headers is selected; filters and header tables work as today.
+3. Switch to Requests and back. **Expected**: editor content intact; active profile unchanged.
 4. Switch profile in the left bar. **Expected**: Headers is selected again.
 
 ## Manual scenario 2 — Opt-in recording (US2, FR-005..FR-013)
 
 1. Profile adds `X-Test: 1` and a URL filter for `https://example.com/.*`.
-2. Open Logs. **Expected**: recording off; empty state tells you to start.
-3. Without starting, load `https://example.com`. Reopen Logs. **Expected**: still empty.
+2. Open Requests. **Expected**: recording off; empty state tells you to start.
+3. Without starting, load `https://example.com`. Reopen Requests. **Expected**: still empty.
 4. Start recording. Chip “Recording” appears in the status row (visible if you switch to Headers).
 5. Load `https://example.com` and `https://example.org`. **Expected**: only the example.com request appears; type + status fill in within 2s.
 6. Pause. Reload example.com. **Expected**: no new row; old row remains.

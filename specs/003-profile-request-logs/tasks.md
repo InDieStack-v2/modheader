@@ -48,23 +48,23 @@ description: "Task list for feature implementation"
 
 ---
 
-## Phase 3: User Story 1 - Split Profile Workspace into Editor and Logs (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - Split Profile Workspace into Editor and Requests (Priority: P1) 🎯 MVP
 
-**Goal**: Profile workspace has Headers | Logs tabs. Headers is the existing editor and is the default. Switching tabs does not change profile or lose edits.
+**Goal**: Profile workspace has Headers | Requests tabs. Headers is the existing editor and is the default. Switching tabs does not change profile or lose edits.
 
-**Independent Test**: Open the popup — two workspace tabs, Headers selected with filters + header tables; switch to Logs and back; editor intact; switching the left profile bar returns to Headers (spec US1).
+**Independent Test**: Open the popup — two workspace tabs, Headers selected with filters + header tables; switch to Requests and back; editor intact; switching the left profile bar returns to Headers (spec US1).
 
 ### Tests for User Story 1
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [X] T008 [US1] Add `tests/e2e/request-log.spec.ts` US1 cases: Headers|Logs tabs visible, Headers selected by default, Headers still shows filter + header tables, Logs then Headers keeps typed header text, switching profile selects Headers again
+- [X] T008 [US1] Add `tests/e2e/request-log.spec.ts` US1 cases: Headers|Requests tabs visible, Headers selected by default, Headers still shows filter + header tables, Requests then Headers keeps typed header text, switching profile selects Headers again
 
 ### Implementation for User Story 1
 
-- [X] T009 [US1] Add MUI workspace tabs **Headers | Logs** in `entrypoints/popup/App.tsx` per `specs/003-profile-request-logs/contracts/ui-components.md`. Default Headers on open and whenever `selectedProfileIndex` changes. Do not change `ProfileTabBar` or global pause
+- [X] T009 [US1] Add MUI workspace tabs **Headers | Requests** in `entrypoints/popup/App.tsx` per `specs/003-profile-request-logs/contracts/ui-components.md`. Default Headers on open and whenever `selectedProfileIndex` changes. Do not change `ProfileTabBar` or global pause
 - [X] T010 [P] [US1] Add placeholder `components/RequestLogList.tsx` that accepts `RequestLogListProps` from the UI contract and renders a static empty/paused state (start control can be disabled until US2)
-- [X] T011 [US1] Render `RequestLogList` on the Logs tab from `entrypoints/popup/App.tsx`
+- [X] T011 [US1] Render `RequestLogList` on the Requests tab from `entrypoints/popup/App.tsx`
 
 **Checkpoint**: US1 independently testable. `npm run test:e2e -- tests/e2e/request-log.spec.ts` US1 cases pass.
 
@@ -96,7 +96,7 @@ description: "Task list for feature implementation"
 
 ## Phase 5: User Story 3 - Inspect and Manage Captured Logs (Priority: P2)
 
-**Goal**: Newest-first list, expand for full header snapshot, clear without changing recording, live updates within 2s while Logs is open.
+**Goal**: Newest-first list, expand for full header snapshot, clear without changing recording, live updates within 2s while Requests is open.
 
 **Independent Test**: Record several requests, expand one, see post-mod headers, clear, recording still on, new rows appear live (spec US3).
 
@@ -104,13 +104,13 @@ description: "Task list for feature implementation"
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [X] T018 [US3] Extend `tests/e2e/request-log.spec.ts`: expand row shows request (and response when complete) headers including the profile’s patched header; Clear empties the list and leaves recording on; a new patched request appears within 2s while Logs stays open
+- [X] T018 [US3] Extend `tests/e2e/request-log.spec.ts`: expand row shows request (and response when complete) headers including the profile’s patched header; Clear empties the list and leaves recording on; a new patched request appears live within 2s while Requests stays open
 
 ### Implementation for User Story 3
 
 - [X] T019 [P] [US3] Add `components/RequestLogDetail.tsx` — request/response header lists; waiting state while `status === 'pending'`
 - [X] T020 [US3] Expand/select behavior + Clear control in `components/RequestLogList.tsx` (FR-015, FR-016). Collapsed row: time, method, truncated URL, resource type, status
-- [X] T021 [US3] Confirm `subscribeRequestLog` is hooked in `entrypoints/popup/App.tsx` so Logs updates live without tab switch (FR-021)
+- [X] T021 [US3] Confirm `subscribeRequestLog` is hooked in `entrypoints/popup/App.tsx` so Requests updates live without tab switch (FR-021)
 
 **Checkpoint**: US3 independently testable on top of a recording session.
 
@@ -208,9 +208,9 @@ Task: "lib/curl.ts + tests/unit/curl.test.ts"
 ### MVP First (User Story 1 Only)
 
 1. Phase 1 + 2
-2. Phase 3 (Headers | Logs tabs)
+2. Phase 3 (Headers | Requests tabs)
 3. **STOP and VALIDATE** US1 e2e
-4. Demo: editor unchanged, Logs tab exists
+4. Demo: editor unchanged, Requests tab exists
 
 ### Incremental Delivery
 

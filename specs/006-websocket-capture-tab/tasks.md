@@ -44,13 +44,13 @@
 
 ## Phase 3: User Story 1 - Dedicated WebSockets Tab (P1) 🎯 MVP
 
-**Goal**: a third tab listing patched WebSocket connections (time, URL, state), never mixed into Logs.
+**Goal**: a third tab listing patched WebSocket connections (time, URL, state), never mixed into Requests.
 
-**Independent Test**: profile with `X-Test: 1` and no filters, recording on, the fixture page opens a socket. WebSockets shows one `open` row, the echo server saw `X-Test: 1`, and Logs has no row for it (quickstart 1–2, 11).
+**Independent Test**: profile with `X-Test: 1` and no filters, recording on, the fixture page opens a socket. WebSockets shows one `open` row, the echo server saw `X-Test: 1`, and Requests has no row for it (quickstart 1–2, 11).
 
 ### Tests for User Story 1
 
-- [X] T011 [P] [US1] Create tests/e2e/websocket.spec.ts with quickstart scenarios 1, 2 and 11. Check the three tabs with Headers as the default; that the row appears with state `open` within 2 s; that `lastUpgradeHeaders['x-test'] === '1'`; that the Logs tab has no ws row; and that a profile type filter of XHR only captures nothing until WebSocket is added. Use the existing helpers in tests/e2e/helpers.ts and follow the style of tests/e2e/request-log.spec.ts
+- [X] T011 [P] [US1] Create tests/e2e/websocket.spec.ts with quickstart scenarios 1, 2 and 11. Check the three tabs with Headers as the default; that the row appears with state `open` within 2 s; that `lastUpgradeHeaders['x-test'] === '1'`; that the Requests tab has no ws row; and that a profile type filter of XHR only captures nothing until WebSocket is added. Use the existing helpers in tests/e2e/helpers.ts and follow the style of tests/e2e/request-log.spec.ts
 
 ### Implementation for User Story 1
 
@@ -70,7 +70,7 @@
   - add an `expandedSocketId` state that resets on profile switch, tab switch and clear (the same places `expandedLogId` resets)
 - [X] T015 [US1] Run `npm run test:e2e -- websocket` until T011 passes in Chrome
 
-**Checkpoint**: US1 works on its own. The connection list is live and Logs is clean.
+**Checkpoint**: US1 works on its own. The connection list is live and Requests is clean.
 
 ---
 
@@ -132,13 +132,13 @@
 
 ## Phase 5: User Story 3 - Independent Recording Control and Clearing (P2)
 
-**Goal**: Logs and WebSockets each have their own start/pause control per profile (independent); clear on WebSockets affects only socket data; everything resets on browser restart.
+**Goal**: Requests and WebSockets each have their own start/pause control per profile (independent); clear on WebSockets affects only socket data; everything resets on browser restart.
 
 **Independent Test**: quickstart 9, 10 and 13.
 
 ### Tests for User Story 3
 
-- [X] T027 [P] [US3] (shared-toggle assertions superseded by T038) Extend tests/e2e/websocket.spec.ts. Starting recording from WebSockets shows `Logs · rec` on the Logs tab and vice versa. After pausing, new sockets and messages aren't captured while old ones stay. Clear on WebSockets removes the socket rows while HTTP Logs rows and recording state stay. Wiping session state (as tests/e2e/request-log.spec.ts simulates a browser restart) empties WebSockets and turns recording off
+- [X] T027 [P] [US3] (shared-toggle assertions superseded by T038) Extend tests/e2e/websocket.spec.ts. Starting recording from WebSockets shows `Requests · rec` on the Requests tab and vice versa. After pausing, new sockets and messages aren't captured while old ones stay. Clear on WebSockets removes the socket rows while HTTP Requests rows and recording state stay. Wiping session state (as tests/e2e/request-log.spec.ts simulates a browser restart) empties WebSockets and turns recording off
 - [X] T028 [P] [US3] Add a unit test to tests/unit/session-log.test.ts: `clearSockets(i)` leaves `entries[i]`, `recording[i]` and `typeFilter[i]` unchanged, and `clearEntries(i)` leaves `sockets[i]` unchanged
 
 ### Implementation for User Story 3
@@ -153,7 +153,7 @@
 ## Phase 6: Polish & Cross-Cutting
 
 - [X] T031 [P] Update the README.md feature list with the WebSockets tab (capture, decoded views, and the worker-socket limitation)
-- [X] T032 Run the full suite `npm run lint && npm run compile && npm run test && npm run test:e2e` and fix any regressions, especially in tests/e2e/request-log.spec.ts, which is affected by the 7 MB budget and by ws rows leaving Logs
+- [X] T032 Run the full suite `npm run lint && npm run compile && npm run test && npm run test:e2e` and fix any regressions, especially in tests/e2e/request-log.spec.ts, which is affected by the 7 MB budget and by ws rows leaving Requests
 - [ ] T033 Manual sign-off: run quickstart scenarios 1–8 and 13 in both Chrome and Firefox (`npm run dev:firefox`), and record the results in the change description (Principle II, V)
 
 ---
@@ -163,8 +163,8 @@
 - [X] T034 [P] [US3] Add failing unit tests in tests/unit/session-log.test.ts: `wsRecording` defaults off and is independent of `recording`; `anyRecording` is true for either flag; `wsRecording` follows `remapOnReorder` / `dropAt` / `insertSlot`; `clearSockets` and `clearEntries` leave both flags alone; pause clears both flags for every profile and "no rules" clears both for the selected profile only
 - [X] T035 [US3] Implement in lib/types.ts and lib/session-log.ts: `RequestLogState.wsRecording`, key `requestLogWsRecording`, `setWsRecording`, handle it in `getRequestLogState` / `writeState` / `pad` / reorder / drop / insert / `wipeLocalFallbackKeys` / `subscribeRequestLog`; make `stopAllRecording` and `syncRecordingWithPatching` clear both flags and `anyRecording` count either. Make T034 pass
 - [X] T036 [US3] In lib/request-log-observer.ts gate WebSocket handshake capture, hook binding, message flush and message append on `wsRecording` (HTTP paths keep `recording`). In entrypoints/background.ts show the toolbar badge recording state for either flag and re-sync the page hook when `requestLogWsRecording` changes
-- [X] T037 [US3] In entrypoints/popup/App.tsx add `toggleWsRecording`; the WebSockets tab label/toggle use `wsRecording`, the Logs tab keeps `recording`; the status chip reads `Recording`, `Recording WS` or `Recording Logs+WS`
-- [X] T038 [US3] Rewrite the "shared recording toggle" case in tests/e2e/websocket.spec.ts as independent toggles: WebSocket recording does not log HTTP requests, starting/pausing Logs leaves WebSocket recording on, chip labels correct
+- [X] T037 [US3] In entrypoints/popup/App.tsx add `toggleWsRecording`; the WebSockets tab label/toggle use `wsRecording`, the Requests tab keeps `recording`; the status chip reads `Recording`, `Recording WS` or `Recording Requests+WS`
+- [X] T038 [US3] Rewrite the "shared recording toggle" case in tests/e2e/websocket.spec.ts as independent toggles: WebSocket recording does not log HTTP requests, starting/pausing Requests leaves WebSocket recording on, chip labels correct
 - [ ] T039 Re-run quickstart scenarios 2, 9, 9b, 10 and 13 in Chrome and Firefox as part of T033
 
 ---
@@ -191,6 +191,6 @@ US3:          T027 ∥ T028, then T029 → T030
 
 ## Implementation Strategy
 
-1. **MVP = Phase 1–3 (US1)**: connections show up in their own tab and Logs stops showing ws handshakes as "Other". This ships value on its own.
+1. **MVP = Phase 1–3 (US1)**: connections show up in their own tab and Requests stops showing ws handshakes as "Other". This ships value on its own.
 2. **+US2**: messages and decoded views, the main reason users capture sockets.
 3. **+US3**: independent recording toggles and clear hardening, then Polish and the cross-browser sign-off.

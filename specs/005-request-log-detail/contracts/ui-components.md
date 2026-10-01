@@ -10,7 +10,7 @@ Props unchanged (`expandedId`, `onExpand`, `onCopyCurl`, …).
 
 - Collapsed row: time, method, status, short type, truncated URL (`title` = full URL), copy cURL. One flex row. No horizontal popup scroll.
 - Row button toggles expand (`aria-expanded`). Copy cURL does not call `onExpand`.
-- At most one `expandedId`. Parent clears it when leaving Logs, switching profile, clearing, or the id is not in `visibleEntries`.
+- At most one `expandedId`. Parent clears it when leaving Requests, switching profile, clearing, or the id is not in `visibleEntries`.
 - Expanded row renders `RequestLogDetail` immediately below the summary, inside the same row container.
 - Live `entries` updates re-render the open detail in place.
 
@@ -25,9 +25,11 @@ export interface RequestLogDetailProps {
 
 Layout (top to bottom, all labeled):
 
-1. **Overview** — method, status, resource type, time, full stored URL (selectable).
+1. **Overview** — method, status, resource type, and time as compact metadata chips/fields; full stored URL (selectable) with a copy-URL control.
 2. **Request** — header list (post-modification, unredacted) then request body panel.
 3. **Response** — header list or “Waiting for response…” then response body panel.
+
+Each section is visually separated so pending and completed records remain scannable. Empty non-pending header lists show “No headers captured.”
 
 Body panel:
 
@@ -41,13 +43,13 @@ Body panel:
 
 Copy is a control on that body only. It must not copy headers or the other body.
 
-Long overview URL, header lists, and body `<pre>` scroll locally (`max-height` on body). No horizontal popup scroll.
+Long overview URLs, header lists, and body `<pre>` scroll locally (`max-height` on body). No horizontal popup scroll. The detail remains contained inside the expanded row.
 
 ## Expand reset (popup `App`)
 
 `expandedId` is React state only. Set `null` when:
 
-- workspace tab ≠ Logs
+- workspace tab ≠ Requests
 - `selectedProfileIndex` changes
 - log is cleared
 - `expandedId` is not among currently visible rows (type filter or eviction)

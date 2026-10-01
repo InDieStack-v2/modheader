@@ -24,17 +24,17 @@ The e2e fixture adds a `ws` echo server on `127.0.0.1:<port>` that records the u
 
 | # | Steps | Expected |
 |---|-------|----------|
-| 1 | Profile has request header `X-Test: 1` and no filters. Open the popup | Tabs read Headers · Logs · WebSockets, with Headers selected |
-| 2 | Start recording **on the WebSockets tab**. Open the fixture page, which connects to `ws://127.0.0.1:<port>` | The WebSockets tab shows one row, `open`. The echo server saw `X-Test: 1`. The **Logs** tab has no row for it (FR-003) |
-| 3 | Page sends `{"a":1}`, `hello`, and 3 bytes `01 02 03` | Detail shows 6 messages in order (↑↓ pairs). JSON opens pretty-printed, `hello` opens as Text, the bytes open as Hex `01 02 03` |
+| 1 | Profile has request header `X-Test: 1` and no filters. Open the popup | Tabs read Headers · Requests · WebSockets, with Headers selected |
+| 2 | Start recording **on the WebSockets tab**. Open the fixture page, which connects to `ws://127.0.0.1:<port>` | The WebSockets tab shows one row, `open`. The echo server saw `X-Test: 1`. The **Requests** tab has no row for it (FR-003) |
+| 3 | Page sends `{"a":1}`, `hello`, and 3 bytes `01 02 03` | Connection detail shows state, tab scope, observation status, and message count; Messages shows direction chips and sequence numbers; JSON opens pretty-printed, `hello` opens as Text, the bytes open as Hex `01 02 03` |
 | 4 | Page sends MessagePack bytes of `{"x":[1,2]}` | Opens in the MessagePack view as `{"x": [1, 2]}`. Switching to Base64 shows `gaF4kgEC` |
 | 5 | Page sends the text `aGVsbG8=` and the user picks Base64 | Shows `hello` |
 | 6 | Pick MessagePack on the `hello` message | "Cannot decode as MessagePack" notice, and Text is still reachable |
 | 7 | Keep the popup open while the page sends a message every 500 ms | New rows appear within 2 s (SC-003) |
-| 8 | Page closes with code 4001 and reason "bye" | Row reads `closed 4001`, detail shows the reason, and messages remain |
+| 8 | Page closes with code 4001 and reason "bye" | Row reads `closed 4001`, Connection detail shows the close reason, and messages remain |
 | 9 | Pause WebSocket recording, then the page opens a new socket and sends messages | Nothing new is captured; the old data is still there |
-| 9b | With only WebSocket recording on, the page makes an HTTP request; then start Logs recording and pause it again | The HTTP request is not logged until Logs recording starts. Starting or pausing Logs never changes WebSocket recording, and the status chip reads `Recording WS` / `Recording Logs+WS` accordingly |
-| 10 | Clear on the WebSockets tab | Socket rows are gone, the Logs rows and both recording states are unchanged |
+| 9b | With only WebSocket recording on, the page makes an HTTP request; then start Requests recording and pause it again | The HTTP request is not logged until Requests recording starts. Starting or pausing Requests never changes WebSocket recording, and the status chip reads `Recording WS` / `Recording Requests+WS` accordingly |
+| 10 | Clear on the WebSockets tab | Socket rows are gone, the Requests rows and both recording states are unchanged |
 | 11 | Profile type filter set to XHR only; record and open a socket | Not captured. Add WebSocket to the filter → captured |
 | 12 | Page sends 600 messages | The detail keeps the last 500 and shows "Earlier messages were dropped". Opening the connection takes under 1 s |
 | 13 | Restart the browser | The WebSockets tab is empty and both recordings are off |

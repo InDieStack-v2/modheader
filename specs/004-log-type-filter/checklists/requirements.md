@@ -32,6 +32,6 @@
 ## Notes
 
 - Validation pass 1 (2026-08-17): all items pass.
-- 2026-08-17 specify update: multi-select type UX added (US3, FR-012–016) for both Logs view filter and Headers capture filter. Checklist re-checked — still 16/16.
+- 2026-08-17 specify update: multi-select type UX added (US3, FR-012–016) for both Requests view filter and Headers capture filter. Checklist re-checked — still 16/16.
 - Informed defaults: view-only multi-select type filter; none selected = all types; session-scoped per profile; unknown types → Other; 003 capture/cURL/detail unchanged.
 - Ready for `/speckit-clarify` or `/speckit-plan`.

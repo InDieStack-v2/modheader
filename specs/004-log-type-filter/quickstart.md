@@ -13,10 +13,10 @@ npm run test:e2e -- --project=chromium
 
 ## Manual / e2e scenarios
 
-### 1 — Logs type filter (US1, SC-001, SC-002, SC-005)
+### 1 — Requests type filter (US1, SC-001, SC-002, SC-005)
 
 1. Record a page load + XHR against the echo server (as in 003).
-2. On Logs, the full type toggle row is visible (document, XHR, script, …).
+2. On Requests, the full type toggle row is visible (document, XHR, script, …).
 3. Click **XHR** only. **Expected**: only `xmlhttprequest` rows; other captured types hidden; recording still on.
 4. Click **XHR** again (last type). **Expected**: all rows return (filter = all). Stored count unchanged.
 
@@ -36,5 +36,5 @@ npm run test:e2e -- --project=chromium
 
 ### 4 — Session memory (FR-005)
 
-1. Set Logs filter to XHR, close popup, reopen. **Expected**: still XHR-only.
+1. Set the Requests filter to XHR, close popup, reopen. **Expected**: still XHR-only.
 2. Clear log. **Expected**: filter back to all types.

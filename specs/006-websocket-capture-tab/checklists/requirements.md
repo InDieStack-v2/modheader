@@ -31,5 +31,5 @@
 
 ## Notes
 
-- "Separate tab" was read as a third popup tab (Headers | Logs | WebSockets), not a standalone browser page. It is recorded in Assumptions; confirm it via `/speckit-clarify` if needed.
-- Recording is independent per tab (Logs and WebSockets each have their own toggle); changed from shared on 2026-09-30 and recorded in the spec's Clarifications.
+- "Separate tab" was read as a third popup tab (Headers | Requests | WebSockets), not a standalone browser page. It is recorded in Assumptions; confirm it via `/speckit-clarify` if needed.
+- Recording is independent per tab (Requests and WebSockets each have their own toggle); changed from shared on 2026-09-30 and recorded in the spec's Clarifications.

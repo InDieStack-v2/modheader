@@ -16,36 +16,40 @@
 - Q: After a full browser restart, what should happen to recording and to entries already captured? → A: Both reset on browser restart; the user must start recording again
 - Q: How much of each request URL should the log store and show? → A: Store and show origin + path + query string; drop embedded credentials and fragments
 - Q: Should each log row include the HTTP status of the patched request (200, 404, failed), or only what this profile applied? → A: Include status and resource type (XHR, script, document, …) on every row
-- Q: While the popup stays open on the Logs tab, should new patched requests appear in the list as they happen? → A: Live: new and updated entries appear within about 2 seconds while the Logs tab is open
+- Q: While the popup stays open on the Requests tab, should new patched requests appear in the list as they happen? → A: Live: new and updated entries appear within about 2 seconds while the Requests tab is open
 - Q: When someone opens a log row, which headers should they see? → A: A snapshot of the request/response headers after modification (full header set)
 - Q: In that header snapshot, should sensitive headers such as Cookie, Authorization, and Set-Cookie be stored and shown in full? → A: Superceded — later answer: show and copy real secret header values (no redaction)
-- Q: If recording is on, should the user still see that while they are on the Headers tab or after they reopen the popup on Headers? → A: Show a recording indicator on the Logs tab and in the existing status area so it is visible from Headers
+- Q: If recording is on, should the user still see that while they are on the Headers tab or after they reopen the popup on Headers? → A: Show a recording indicator on the Requests tab and in the existing status area so it is visible from Headers
 - Q: Should request and response bodies be visible, and can a row copy a cURL command? → A: Yes — entry detail shows request and response bodies; each log row has a copy-cURL action. Supercedes the earlier "bodies out of scope" default.
 - Q: Should the copied cURL command include the real Authorization and Cookie values so it can be replayed, or keep those values redacted like the on-screen snapshot? → A: Show and copy real secret header values (no redaction)
 - Q: Should the header snapshot and the copied cURL represent the request after this profile applied its headers, or the original request before the patch? → A: After this profile’s modification (patched request and/or response)
 
+### Session 2026-10-01
+
+- Q: What should the request-log workspace tab be called? → A: **Requests**. This is a UI-label change only; request-log storage, APIs, and internal `logs` identifiers remain unchanged.
+
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Split Profile Workspace into Editor and Logs (Priority: P1)
+### User Story 1 - Split Profile Workspace into Editor and Requests (Priority: P1)
 
-When the user opens a profile, the profile content area is split into two tabs: **Headers** (the existing header and filter editor) and **Logs** (a request log for APIs this profile has patched). The Headers tab is the default. Switching tabs does not change the active profile, does not lose unsaved editor state, and does not start or stop header modification.
+When the user opens a profile, the profile content area is split into two tabs: **Headers** (the existing header and filter editor) and **Requests** (the request log for APIs this profile has patched). The Headers tab is the default. Switching tabs does not change the active profile, does not lose unsaved editor state, and does not start or stop header modification.
 
 **Why this priority**: This is the structural change the rest of the feature sits on. Without a dedicated place for logs, recording has nowhere to surface. The editor must remain the default so everyday header work is unchanged.
 
-**Independent Test**: Open the popup, confirm two content tabs are visible for the active profile, confirm the Headers tab shows the current editor, switch to Logs and back, and confirm the editor content is intact and header modification still works while on either tab.
+**Independent Test**: Open the popup, confirm two content tabs are visible for the active profile, confirm the Headers tab shows the current editor, switch to Requests and back, and confirm the editor content is intact and header modification still works while on either tab.
 
 **Acceptance Scenarios**:
 
 1. **Given** the popup is open on a profile, **When** the user looks at the profile content area, **Then** they see two tabs labeled for the header editor and for request logs, and the header editor tab is selected by default.
 2. **Given** the header editor tab is selected, **When** the user inspects the content, **Then** the existing filter editor, request-header table, and response-header table are present and fully usable.
-3. **Given** the user is on the header editor tab, **When** they switch to the logs tab and back, **Then** editor contents, scroll position, and the active profile are unchanged.
+3. **Given** the user is on the header editor tab, **When** they switch to the Requests tab and back, **Then** editor contents, scroll position, and the active profile are unchanged.
 4. **Given** the user switches to a different profile, **When** the content area updates, **Then** the same two tabs are available for that profile, and the header editor tab is shown again.
 
 ---
 
 ### User Story 2 - Opt-in Recording of Patched Requests (Priority: P1)
 
-Request logging is off until the user explicitly starts it. On the logs tab, a start/pause control turns recording on or off for the active profile. While recording is on, the extension captures each network request that this profile actually patches (a request that matches the profile's enabled filters and has at least one of this profile's enabled header rules applied). Recording continues in the background even if the popup is closed. Pausing stops new entries from being added; existing entries remain. A full browser restart turns recording off and discards every profile's log; the user must start recording again.
+Request logging is off until the user explicitly starts it. On the Requests tab, a start/pause control turns recording on or off for the active profile. While recording is on, the extension captures each network request that this profile actually patches (a request that matches the profile's enabled filters and has at least one of this profile's enabled header rules applied). Recording continues in the background even if the popup is closed. Pausing stops new entries from being added; existing entries remain. A full browser restart turns recording off and discards every profile's log; the user must start recording again.
 
 **Why this priority**: Logging every request by default would be noisy, costly, and a privacy risk. The user asked for on-use recording via a start/pause control. This is the core value of the feature.
 
@@ -53,7 +57,7 @@ Request logging is off until the user explicitly starts it. On the logs tab, a s
 
 **Acceptance Scenarios**:
 
-1. **Given** the user has never started recording for a profile, **When** they open the logs tab, **Then** recording is off, the start control is offered, and the log is empty (or shows a clear empty state).
+1. **Given** the user has never started recording for a profile, **When** they open the Requests tab, **Then** recording is off, the start control is offered, and the log is empty (or shows a clear empty state).
 2. **Given** recording is off, **When** matching requests occur, **Then** no new log entries are created.
 3. **Given** recording is on for the active profile, **When** a request matches the profile's enabled filters and is patched by at least one enabled header rule, **Then** a log entry appears for that request.
 4. **Given** recording is on, **When** a request does not match the profile's enabled filters, or matches but is not patched by this profile, **Then** it is not logged.
@@ -62,26 +66,26 @@ Request logging is off until the user explicitly starts it. On the logs tab, a s
 7. **Given** the extension is globally paused (header modification off), **When** recording is on, **Then** recording turns off for every profile, existing entries remain, and no new log entries are created.
 8. **Given** recording is on for profile A, **When** the user switches to profile B, **Then** profile A's recording state is unchanged, and profile B has its own independent recording state (off unless the user started it there).
 9. **Given** recording is on and the log has entries, **When** the browser fully restarts, **Then** recording is off for every profile, every log is empty, and the user must start recording again.
-10. **Given** recording is on, **When** the user is on the Headers tab or reopens the popup on Headers, **Then** a recording indicator is visible in the compact status area; they must go to the Logs tab to pause.
+10. **Given** recording is on, **When** the user is on the Headers tab or reopens the popup on Headers, **Then** a recording indicator is visible in the compact status area; they must go to the Requests tab to pause.
 
 ---
 
-### User Story 3 - Inspect and Manage Captured Logs (Priority: P2)
+### User Story 3 - Inspect and Manage Captured Requests (Priority: P2)
 
-On the logs tab the user can review captured entries, see enough detail to confirm which API was patched and what changed, and clear the log when they are done. The list stays usable as entries accumulate. While the Logs tab is open, new patched requests and status updates appear in the list within about 2 seconds without the user leaving or reopening the popup.
+On the Requests tab the user can review captured entries, see enough detail to confirm which API was patched and what changed, and clear the request log when they are done. The list stays usable as entries accumulate. While the Requests tab is open, new patched requests and status updates appear in the list within about 2 seconds without the user leaving or reopening the popup.
 
 **Why this priority**: Recording has little value if the user cannot read or reset the results. This is independently testable once entries exist, and can ship after the capture path.
 
-**Independent Test**: Start recording, generate several patched requests, open the logs tab, inspect an entry's details, clear the log, and verify the list is empty while recording state is unchanged.
+**Independent Test**: Start recording, generate several patched requests, open the Requests tab, inspect an entry's details, clear the request log, and verify the list is empty while recording state is unchanged.
 
 **Acceptance Scenarios**:
 
-1. **Given** one or more entries exist, **When** the user views the logs tab, **Then** each entry shows at least the time, HTTP method, URL, resource type, status (pending, HTTP code, or failed), and a summary of which headers this profile applied.
+1. **Given** one or more entries exist, **When** the user views the Requests tab, **Then** each entry shows at least the time, HTTP method, URL, resource type, status (pending, HTTP code, or failed), and a summary of which headers this profile applied.
 2. **Given** the user selects an entry, **When** they inspect its details, **Then** they see a snapshot of that request's and/or response's headers as they were after this profile's modification (the full header set, not only the rules this profile applied).
 3. **Given** entries exist, **When** the user clears the log, **Then** all entries for that profile are removed and recording stays in its current on/off state.
 4. **Given** more entries exist than fit on screen, **When** the user scrolls the list, **Then** older entries remain reachable.
-5. **Given** the log is empty, **When** the user views the logs tab, **Then** they see a short empty-state message that tells them to start recording to capture patched requests.
-6. **Given** recording is on and the Logs tab is open, **When** a matching request is patched, **Then** its row appears in the list within 2 seconds and later updates from pending to a status code or failed without the user leaving the tab.
+5. **Given** the request log is empty, **When** the user views the Requests tab, **Then** they see a short empty-state message that tells them to start recording to capture patched requests.
+6. **Given** recording is on and the Requests tab is open, **When** a matching request is patched, **Then** its row appears in the list within 2 seconds and later updates from pending to a status code or failed without the user leaving the tab.
 
 ---
 
@@ -95,7 +99,7 @@ When the user opens a log entry they can read the request body and the response 
 
 **Acceptance Scenarios**:
 
-1. **Given** a logged request that had a text request body, **When** the user opens the entry, **Then** they can read that request body without leaving the Logs tab.
+1. **Given** a logged request that had a text request body, **When** the user opens the entry, **Then** they can read that request body without leaving the Requests tab.
 2. **Given** a logged request whose response has arrived with a text body, **When** the user opens the entry, **Then** they can read that response body. While the row is still pending, the response body area shows that it is waiting.
 3. **Given** a logged GET or other request with no body, **When** the user opens the entry, **Then** the request-body area shows a clear empty/not-sent state rather than a blank panel.
 4. **Given** at least one log row, **When** the user activates the copy-cURL action on that row, **Then** a cURL command is placed on the clipboard and the user gets brief confirmation, without opening the row first.
@@ -130,7 +134,7 @@ When the user opens a log entry they can read the request body and the response 
 - **FR-003**: The header editor tab MUST continue to provide the existing filter editor and request/response header tables with no loss of current editing capabilities.
 - **FR-004**: Switching between the two content tabs MUST NOT change the active profile, MUST NOT start or stop header modification, and MUST NOT discard editor content.
 - **FR-005**: Request recording MUST be off by default for every profile and MUST start only when the user explicitly starts it.
-- **FR-006**: The logs tab MUST provide a start/pause control that toggles recording for the active profile only.
+- **FR-006**: The Requests tab MUST provide a start/pause control that toggles recording for the active profile only.
 - **FR-007**: The start/pause control MUST visually reflect whether recording is currently on or off.
 - **FR-008**: While recording is on for a profile, the system MUST append a log entry for each network request that (a) matches that profile's enabled filters (or all requests, if the profile has no enabled filters), (b) is in scope of the current global pause and tab-lock state, and (c) has at least one of that profile's enabled header rules applied. There is no implicit restriction to XHR/fetch; resource types are included or excluded only by the profile's own type filters.
 - **FR-009**: Requests that are not patched by the recording profile MUST NOT be logged.
@@ -145,15 +149,15 @@ When the user opens a log entry they can read the request body and the response 
 - **FR-018**: Request logs MUST remain on the local device and MUST NOT be included in profile export or cloud backup.
 - **FR-019**: Each log entry MUST include the request body and the response body when they can be captured. Bodies are shown in the entry detail, not in the collapsed row.
 - **FR-020**: The feature MUST work in both supported browsers and MUST NOT change how profiles, header rules, or filters are stored.
-- **FR-021**: While the Logs tab is open, new entries and status updates MUST appear in the list within 2 seconds of the request being patched or completing. The user MUST NOT need to switch tabs or reopen the popup to see them.
-- **FR-022**: While recording is on for the active profile, a recording indicator MUST be visible on the Logs tab, in the existing compact status area, and on the extension toolbar badge (a rec emoji, same idea as the pause bars) so the user can see it from the Headers tab, after reopening the popup, and with the popup closed. The indicator MUST NOT start or stop header modification. Pausing recording remains on the Logs tab.
+- **FR-021**: While the Requests tab is open, new entries and status updates MUST appear in the list within 2 seconds of the request being patched or completing. The user MUST NOT need to switch tabs or reopen the popup to see them.
+- **FR-022**: While recording is on for the active profile, a recording indicator MUST be visible on the Requests tab, in the existing compact status area, and on the extension toolbar badge (a rec emoji, same idea as the pause bars) so the user can see it from the Headers tab, after reopening the popup, and with the popup closed. The indicator MUST NOT start or stop header modification. Pausing recording remains on the Requests tab.
 - **FR-023**: Request and response bodies that are text MUST be readable in the entry detail. Empty or missing bodies MUST show an explicit empty/not-available state. Non-text/binary bodies MUST show that they cannot be displayed as text. Each body MUST be capped at 64 KB stored; overflow MUST be truncated with a visible marker.
 - **FR-024**: Each log row MUST provide a copy-cURL action that works without expanding the row. Activating it MUST copy a cURL command to the clipboard and MUST confirm success to the user.
 - **FR-025**: The copied cURL command MUST represent the request after this profile's modification. It MUST include the HTTP method, the stored URL (origin + path + query), request headers from the post-modification snapshot with real values (including `Cookie` and `Authorization`), and the request body when it is stored text. It MUST NOT include the response body. Binary request bodies MUST be omitted, with the user informed that the body was skipped.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Profile Content Tab**: One of two views inside the active profile workspace — Headers (editor) or Logs. Independent of the left-hand profile tab bar.
+- **Profile Content Tab**: One of two views inside the active profile workspace — Headers (editor) or Requests. Independent of the left-hand profile tab bar.
 - **Recording Session**: Per-profile on/off flag that decides whether patched requests are captured. Off by default. Survives popup close; resets off after a full browser restart, a global pause, or when the profile no longer has enabled header rules. Cannot stay on while nothing is being patched.
 - **Request Log Entry**: One captured patched request for a profile. Attributes: time, method, URL (origin + path + query; no credentials or fragment), resource type, status (pending / HTTP code / failed), a post-modification snapshot of request and/or response headers (full header set, values unredacted), and request/response bodies (text up to 64 KB each; binary marked undisplayable). Belongs to one profile.
 - **Request Log**: The ordered list of entries for one profile, newest first, capped at a fixed maximum. Cleared independently of recording state, and discarded on browser restart.
@@ -163,8 +167,8 @@ When the user opens a log entry they can read the request body and the response 
 ### Measurable Outcomes
 
 - **SC-001**: Users can reach the request log for the active profile in at most 1 click from the default popup view.
-- **SC-002**: Users can start or pause recording in at most 1 click after opening the logs tab.
-- **SC-003**: After a patched request completes while recording is on, the corresponding log entry (and its status update) is visible in the logs tab within 2 seconds if that tab is already open, or within 2 seconds of reopening or focusing the popup.
+- **SC-002**: Users can start or pause recording in at most 1 click after opening the Requests tab.
+- **SC-003**: After a patched request completes while recording is on, the corresponding log entry (and its status update) is visible in the Requests tab within 2 seconds if that tab is already open, or within 2 seconds of reopening or focusing the popup.
 - **SC-004**: 100% of existing header-editing and filter-editing actions remain available on the Headers tab with no extra navigation compared to today.
 - **SC-005**: In a mixed traffic sample (matching and non-matching URLs), 100% of logged entries are requests this profile actually patched, and 0% of non-matching or unpatched requests appear.
 - **SC-006**: 90% of first-time users can start recording, trigger a patched request, and identify that request in the log on the first attempt without extra documentation.
@@ -174,7 +178,7 @@ When the user opens a log entry they can read the request body and the response 
 
 ## Assumptions
 
-- "span/pause" in the request means start/pause: a dedicated recording control on the logs tab, not the existing global header-modification pause. Global pause still stops patching. Because nothing is being modified, recording resets off (entries stay); unpause does not restart recording. The same reset applies when the profile has no enabled header rules. This is one idle path — recording cannot stay on while headers are not being modified.
+- "span/pause" in the request means start/pause: a dedicated recording control on the Requests tab, not the existing global header-modification pause. Global pause still stops patching. Because nothing is being modified, recording resets off (entries stay); unpause does not restart recording. The same reset applies when the profile has no enabled header rules. This is one idle path — recording cannot stay on while headers are not being modified.
 - "Patched APIs based on filter" means requests that both match the profile's enabled URL/resource-type filters and actually had at least one of that profile's enabled header rules applied. There is no hidden XHR-only default. Filter-only traffic that was not modified is out of scope.
 - Logging is per profile so that two profiles with different filters do not mix traffic. A profile that is not recording never writes entries, even if another profile is recording.
 - Recording is opt-in and off by default because request URLs and bodies can contain sensitive data. Logs stay local and are excluded from export and cloud backup. Recording and logs are session-scoped: they survive popup close, and both reset on a full browser restart.

@@ -201,7 +201,7 @@ export default function App() {
       : 0;
   const profile = state.profiles[profileIndex];
 
-  // Logs and WebSockets record independently (spec 006 FR-008).
+  // Requests and WebSockets record independently (spec 006 FR-008).
   const logsRecording = logState.recording[profileIndex] === true;
   const wsRecording = logState.wsRecording[profileIndex] === true;
   const toggleRecording = () => {
@@ -218,7 +218,7 @@ export default function App() {
   };
   const recordingLabel = logsRecording
     ? wsRecording
-      ? 'Recording Logs+WS'
+      ? 'Recording Requests+WS'
       : 'Recording'
     : 'Recording WS';
 

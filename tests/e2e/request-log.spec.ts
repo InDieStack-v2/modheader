@@ -4,7 +4,7 @@ import { backgroundWorker, chromeIn, profileWith } from './helpers';
 test.skip(({ browserName }) => browserName !== 'chromium', 'extension load is chromium-only');
 
 test.describe('profile request logs (spec 003)', () => {
-  test('workspace splits into Headers and Logs; Headers is default', async ({
+  test('workspace splits into Headers and Requests; Headers is default', async ({
     context,
     extensionId,
   }) => {
@@ -27,15 +27,15 @@ test.describe('profile request logs (spec 003)', () => {
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
 
     const headersTab = popup.getByRole('tab', { name: 'Headers' });
-    const logsTab = popup.getByRole('tab', { name: /^Logs/ });
+    const requestsTab = popup.getByRole('tab', { name: /^Requests/ });
     await expect(headersTab).toHaveAttribute('aria-selected', 'true');
     await expect(popup.getByPlaceholder('Header name').first()).toHaveValue(
       'X-Alpha',
     );
 
     await popup.getByPlaceholder('Header name').first().fill('X-Edited');
-    await logsTab.click();
-    await expect(logsTab).toHaveAttribute('aria-selected', 'true');
+    await requestsTab.click();
+    await expect(requestsTab).toHaveAttribute('aria-selected', 'true');
     await expect(
       popup.getByText('Start recording to capture patched requests.'),
     ).toBeVisible();
@@ -52,7 +52,7 @@ test.describe('profile request logs (spec 003)', () => {
     );
   });
 
-  test('start recording logs only patched matching requests', async ({
+  test('start recording captures only patched matching requests', async ({
     context,
     extensionId,
     echoServer,
@@ -73,7 +73,7 @@ test.describe('profile request logs (spec 003)', () => {
 
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await popup.getByRole('button', { name: 'Start recording' }).click();
     await expect(popup.getByLabel('Recording', { exact: true })).toBeVisible();
 
@@ -99,7 +99,7 @@ test.describe('profile request logs (spec 003)', () => {
     await popup.getByRole('tab', { name: 'Headers' }).click();
     await expect(popup.getByLabel('Recording', { exact: true })).toBeVisible();
 
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await popup.getByRole('button', { name: 'Pause recording' }).click();
     const before = await popup.getByText(`${echoServer.url}/echo`).count();
     await page.evaluate(async (url: string) => {
@@ -126,7 +126,7 @@ test.describe('profile request logs (spec 003)', () => {
 
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await popup.getByRole('button', { name: 'Start recording' }).click();
 
     const page = await context.newPage();
@@ -172,7 +172,7 @@ test.describe('profile request logs (spec 003)', () => {
 
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await popup.getByRole('button', { name: 'Start recording' }).click();
     await expect(popup.getByLabel('Recording', { exact: true })).toBeVisible();
 
@@ -218,7 +218,7 @@ test.describe('profile request logs (spec 003)', () => {
 
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await popup.getByRole('button', { name: 'Start recording' }).click();
 
     const page = await context.newPage();
@@ -247,7 +247,7 @@ test.describe('profile request logs (spec 003)', () => {
     await popup.close();
     const reopened = await context.newPage();
     await reopened.goto(`chrome-extension://${extensionId}/popup.html`);
-    await reopened.getByRole('tab', { name: /^Logs/ }).click();
+    await reopened.getByRole('tab', { name: /^Requests/ }).click();
     await expect(
       reopened.getByLabel(`Log GET xmlhttprequest ${echoServer.url}/echo`),
     ).toBeVisible();
@@ -314,7 +314,7 @@ test.describe('profile request logs (spec 003)', () => {
 
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await popup.getByRole('button', { name: 'Start recording' }).click();
     await expect(popup.getByLabel('Recording', { exact: true })).toBeVisible();
 
@@ -336,7 +336,7 @@ test.describe('profile request logs (spec 003)', () => {
     await page.evaluate(async (url: string) => {
       await fetch(`${url}?paused=1`);
     }, `${echoServer.url}/echo`);
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await popup.waitForTimeout(1500);
     await expect(
       popup.getByLabel(`Log GET xmlhttprequest ${echoServer.url}/echo?paused=1`),
@@ -349,7 +349,7 @@ test.describe('profile request logs (spec 003)', () => {
     await popup.getByLabel('Play').click();
     await expect(popup.getByLabel('Recording', { exact: true })).toHaveCount(0);
 
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await expect(
       popup.getByRole('button', { name: 'Start recording' }),
     ).toBeEnabled();
@@ -378,7 +378,7 @@ test.describe('profile request logs (spec 003)', () => {
 
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await popup.getByRole('button', { name: 'Start recording' }).click();
 
     const page = await context.newPage();
@@ -421,7 +421,7 @@ test.describe('profile request logs (spec 003)', () => {
     await row1.click();
     await expect(row1).toHaveAttribute('aria-expanded', 'true');
     await popup.getByRole('tab', { name: 'Headers' }).click();
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await expect(row1).toHaveAttribute('aria-expanded', 'false');
     await expect(popup.getByLabel('Request log detail')).toHaveCount(0);
   });
@@ -446,7 +446,7 @@ test.describe('profile request logs (spec 003)', () => {
 
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await popup.getByRole('button', { name: 'Start recording' }).click();
     await expect(popup.getByLabel('Recording', { exact: true })).toBeVisible();
     await page.waitForFunction(
@@ -506,7 +506,7 @@ test.describe('profile request logs (spec 003)', () => {
 
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await popup.getByRole('button', { name: 'Start recording' }).click();
     await expect(popup.getByLabel('Recording', { exact: true })).toBeVisible();
 
@@ -530,7 +530,8 @@ test.describe('profile request logs (spec 003)', () => {
 
     const detail = popup.getByLabel('Request log detail');
     await expect(detail.getByRole('heading', { name: 'Overview' })).toBeVisible();
-    await expect(detail.getByText(/Method/)).toBeVisible();
+    await expect(detail.getByLabel('Request metadata')).toBeVisible();
+    await expect(detail.getByText('POST', { exact: true })).toBeVisible();
     await expect(detail.getByText(`${echoServer.url}/echo`).first()).toBeVisible();
     await expect(detail.getByRole('heading', { name: 'Request' })).toBeVisible();
     await expect(detail.getByText('Request headers')).toBeVisible();
@@ -539,6 +540,10 @@ test.describe('profile request logs (spec 003)', () => {
     await expect(detail.getByText('hello')).toBeVisible();
 
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await popup.getByRole('button', { name: 'Copy request URL' }).click();
+    await expect(popup.getByText('Copied request URL')).toBeVisible();
+    const copiedUrl = await popup.evaluate(() => navigator.clipboard.readText());
+    expect(copiedUrl).toBe(`${echoServer.url}/echo`);
     await popup.getByRole('button', { name: 'Copy request body' }).click();
     await expect(popup.getByText('Copied body')).toBeVisible();
     const copied = await popup.evaluate(() => navigator.clipboard.readText());

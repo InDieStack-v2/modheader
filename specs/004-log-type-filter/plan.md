@@ -6,7 +6,7 @@
 
 ## Summary
 
-Add an always-visible resource-type toggle row on the Logs tab (full standard list; multi-select; empty selection = all types). Remember the selection per profile in `storage.session`. Redesign collapsed log rows into one compact line (method, status, type, truncated URL, copy cURL). Reuse the same toggle control on the Headers capture filter, replacing the current multi `Select` (must keep at least one type there). Capture, storage of log entries, and 003 observer behavior stay unchanged.
+Add an always-visible resource-type toggle row on the Requests tab (full standard list; multi-select; empty selection = all types). Remember the selection per profile in `storage.session`. Redesign collapsed request rows into one compact line (method, status, type, truncated URL, copy cURL). Reuse the same toggle control on the Headers capture filter, replacing the current multi `Select` (must keep at least one type there). Capture, storage of log entries, and 003 observer behavior stay unchanged.
 
 ## Technical Context
 
@@ -16,7 +16,7 @@ Add an always-visible resource-type toggle row on the Logs tab (full standard li
 
 **Storage**: Session key `requestLogTypeFilter` (parallel to profile index). Profile documents unchanged. Capture log entries unchanged.
 
-**Testing**: Vitest for `visibleEntries` / type normalize / toggle reducer. Playwright: Logs filter, row fields, Headers capture toggles.
+**Testing**: Vitest for `visibleEntries` / type normalize / toggle reducer. Playwright: Requests filter, row fields, Headers capture toggles.
 
 **Target Platform**: Chrome + Firefox MV3 popup
 
@@ -38,7 +38,7 @@ Add an always-visible resource-type toggle row on the Logs tab (full standard li
 | II. Cross-Browser Compatibility | MUI chips/toggles work on both browsers | ✅ PASS |
 | III. Simplicity & Minimal Change | UI + one session key; no observer changes | ✅ PASS |
 | IV. Managed Dependencies | No new packages | ✅ PASS |
-| V. Test Discipline | Unit for filter helper; e2e for Logs + Headers toggles | ✅ PASS |
+| V. Test Discipline | Unit for filter helper; e2e for Requests + Headers toggles | ✅ PASS |
 
 **Gate result**: PROCEED.
 
@@ -76,7 +76,7 @@ tests/e2e/request-log.spec.ts   # extend
 tests/e2e/headers or new filter e2e for Headers toggles
 ```
 
-**Structure Decision**: Stay in the existing WXT popup layout. Shared toggle component keeps Logs and Headers in sync (FR-015).
+**Structure Decision**: Stay in the existing WXT popup layout. Shared toggle component keeps Requests and Headers in sync (FR-015).
 
 ## Complexity Tracking
 

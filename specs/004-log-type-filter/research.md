@@ -6,13 +6,13 @@
 
 **Decision**: Move the FilterEditor `RESOURCE_TYPES` list into `lib/resource-types.ts` as `STANDARD_RESOURCE_TYPES: { value, label, shortLabel }[]` (`main_frame`, `sub_frame`, `stylesheet`, `script`, `image`, `object`, `xmlhttprequest`, `other`). `normalizeResourceType(type)` maps unknown values to `other`.
 
-**Rationale**: Spec requires the same names on Logs and Headers. One catalog avoids drift.
+**Rationale**: Spec requires the same names on Requests and Headers. One catalog avoids drift.
 
 **Alternatives considered**: Duplicate labels in two components — rejected (FR-015).
 
 ## D2 — View-filter storage
 
-**Decision**: Session key `requestLogTypeFilter: string[][]` parallel to profiles. `[]` or missing slot = all types (Logs). Remap/drop/insert with the existing session-log index helpers. Reset slot to `[]` in `clearEntries`. Browser restart clears session (FR-005).
+**Decision**: Session key `requestLogTypeFilter: string[][]` parallel to profiles. `[]` or missing slot = all types in Requests. Remap/drop/insert with the existing session-log index helpers. Reset slot to `[]` in `clearEntries`. Browser restart clears session (FR-005).
 
 **Rationale**: Same lifetime as recording/logs. Does not touch `Profile` documents (FR-011).
 
@@ -20,7 +20,7 @@
 
 ## D3 — Always-visible toggles
 
-**Decision**: MUI small wrap toggles/chips. Logs: explicit **All** + one toggle per standard type. `[]` storage ↔ All selected. Capture: type toggles only, no All. No menu, no Select.
+**Decision**: MUI small wrap toggles/chips. Requests: explicit **All** + one toggle per standard type. `[]` storage ↔ All selected. Capture: type toggles only, no All. No menu, no Select.
 
 **Rationale**: Clarification: always-visible toggles. Chips wrap in 720px without page-level horizontal scroll.
 
@@ -30,10 +30,10 @@
 
 **Decision**: `toggleType(selected: string[], value: string, opts: { mode: 'logs' | 'capture' }): string[]`
 
-- Logs: clicking a type when selected is `[]` (all) → result `[value]` (show only that type). Clicking to remove the last remaining type → `[]` (all).
+- Requests: clicking a type when selected is `[]` (all) → result `[value]` (show only that type). Clicking to remove the last remaining type → `[]` (all).
 - Capture: cannot remove the last type; click is ignored (or no-op) if `selected.length === 1` and value is that type.
 
-**Rationale**: Spec empty-selection semantics differ between Logs and Headers.
+**Rationale**: Spec empty-selection semantics differ between the Requests and Headers views.
 
 ## D5 — Collapsed row layout
 

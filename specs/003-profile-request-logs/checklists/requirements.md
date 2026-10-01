@@ -33,5 +33,5 @@
 
 - Validation pass 1 (2026-08-17): all items pass.
 - 2026-08-17 specify update: request/response bodies and per-row copy-cURL added; earlier "bodies out of scope" assumption reversed and recorded in Clarifications. Checklist re-checked — still 16/16.
-- Informed defaults: 64 KB text-body cap; binary bodies not shown; copy-cURL uses stored (redacted) headers and request body only; dedicated logs-tab start/pause; 200-entry cap; local-only; Headers tab is always the landing tab.
+- Informed defaults: 64 KB text-body cap; binary bodies not shown; copy-cURL uses stored (redacted) headers and request body only; dedicated Requests-tab start/pause; 200-entry cap; local-only; Headers tab is always the landing tab.
 - Ready for `/speckit-plan`. Use `/speckit-clarify` if any assumed default should change.

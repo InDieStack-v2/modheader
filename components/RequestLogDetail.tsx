@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Box, IconButton, Typography } from '@mui/material';
+import { Box, Chip, IconButton, Typography } from '@mui/material';
 import { formatBodyForDisplay } from '~/lib/body-format';
 import type { BodyCapture, NameValue, RequestLogEntry } from '~/lib/types';
 
@@ -16,7 +16,17 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <Box sx={{ mt: 0.75, minWidth: 0 }}>
+    <Box
+      sx={{
+        mt: 0.75,
+        p: 0.75,
+        minWidth: 0,
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: 1,
+        bgcolor: 'background.default',
+      }}
+    >
       <Typography variant="caption" component="h3" sx={{ fontWeight: 700 }}>
         {title}
       </Typography>
@@ -25,7 +35,7 @@ export function Section({
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+export function Field({ label, value }: { label: string; value: string }) {
   return (
     <Typography
       variant="caption"
@@ -50,6 +60,14 @@ export function HeaderList({
     return (
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
         Waiting for response…
+      </Typography>
+    );
+  }
+
+  if (!headers?.length) {
+    return (
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+        No headers captured.
       </Typography>
     );
   }
@@ -167,17 +185,69 @@ export default function RequestLogDetail({
     entry.status === 'pending' || entry.status === 'failed'
       ? entry.status
       : String(entry.status);
+  const statusTone =
+    entry.status === 'pending'
+      ? 'warning.main'
+      : entry.status === 'failed' ||
+          (typeof entry.status === 'number' && entry.status >= 400)
+        ? 'error.main'
+        : 'success.main';
+  const copyValue = async (value: string, success: string, failure: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      onCopyBody?.(success);
+    } catch {
+      onCopyBody?.(failure);
+    }
+  };
   return (
     <Box
       aria-label="Request log detail"
       sx={{ pt: 0.5, minWidth: 0, overflowX: 'auto' }}
     >
       <Section title="Overview">
-        <Field label="Method" value={entry.method} />
-        <Field label="Status" value={status} />
-        <Field label="Type" value={entry.resourceType} />
+        <Box
+          aria-label="Request metadata"
+          sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}
+        >
+          <Chip size="small" color="primary" variant="outlined" label={entry.method} />
+          <Chip
+            size="small"
+            variant="outlined"
+            label={`Status ${status}`}
+            sx={{ color: statusTone, borderColor: statusTone }}
+          />
+          <Chip size="small" variant="outlined" label={entry.resourceType} />
+        </Box>
         <Field label="Time" value={new Date(entry.startedAt).toLocaleTimeString()} />
-        <Field label="URL" value={entry.url} />
+        <Box sx={{ mt: 0.25, minWidth: 0 }}>
+          <Typography
+            variant="caption"
+            sx={{ color: 'text.secondary', display: 'block' }}
+          >
+            URL
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, minWidth: 0 }}>
+            <Typography
+              component="code"
+              variant="caption"
+              sx={{ flex: 1, minWidth: 0, wordBreak: 'break-all' }}
+            >
+              {entry.url}
+            </Typography>
+            <IconButton
+              size="small"
+              aria-label="Copy request URL"
+              title="Copy request URL"
+              sx={{ borderRadius: 1, border: 1, borderColor: 'divider', px: 0.75, py: 0 }}
+              onClick={() =>
+                void copyValue(entry.url, 'Copied request URL', 'Could not copy request URL')
+              }
+            >
+              <Typography variant="caption">Copy</Typography>
+            </IconButton>
+          </Box>
+        </Box>
       </Section>
       <Section title="Request">
         <Typography variant="caption" sx={{ fontWeight: 600, display: 'block' }}>

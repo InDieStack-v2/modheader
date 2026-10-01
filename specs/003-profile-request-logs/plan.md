@@ -6,7 +6,7 @@
 
 ## Summary
 
-Split the active profile workspace into **Headers** (existing editor) and **Logs**. Logging is opt-in per profile via a start/pause control. While recording, the background observes network requests, keeps only those the active profile actually patches (same filter + enabled-rule semantics as DNR), and stores a session-scoped log: post-modification header snapshot (secrets in full), text bodies (64 KB cap), status, and resource type. The Logs tab updates live; each row can copy a cURL of the **patched** request. Recording and logs live in `chrome.storage.session` so they survive popup close and worker restarts, and both reset on a full browser restart.
+Split the active profile workspace into **Headers** (existing editor) and **Requests**. Request recording is opt-in per profile via a start/pause control. While recording, the background observes network requests, keeps only those the active profile actually patches (same filter + enabled-rule semantics as DNR), and stores a session-scoped log: post-modification header snapshot (secrets in full), text bodies (64 KB cap), status, and resource type. The Requests tab updates live; each row can copy a cURL of the **patched** request. Recording and logs live in `chrome.storage.session` so they survive popup close and worker restarts, and both reset on a full browser restart.
 
 Capture uses non-blocking `webRequest` (new permission, justified). Response bodies are available for `xmlhttprequest` / `fetch` via a MAIN-world hook registered only while recording (`scripting` permission). Other resource types still log headers/status; their response-body panel shows not-available.
 
@@ -24,7 +24,7 @@ Capture uses non-blocking `webRequest` (new permission, justified). Response bod
 
 **Project Type**: browser-extension (popup + background observer + optional content hook)
 
-**Performance Goals**: New log row / status update visible within 2s while Logs is open (SC-003, FR-021); popup still interactive &lt; 1s on open; observer idle when no profile is recording.
+**Performance Goals**: New request row / status update visible within 2s while Requests is open (SC-003, FR-021); popup still interactive &lt; 1s on open; observer idle when no profile is recording.
 
 **Constraints**: No blocking `webRequest` (Chrome MV3). No `onRuleMatchedDebug` (unpacked-only). `storage.session` quota 10 MB — evict oldest entries if a write would exceed, even before the 200 cap. New permissions minimized: `webRequest`, `scripting`. Self-contained build; no network-fetched code.
 
@@ -40,7 +40,7 @@ Capture uses non-blocking `webRequest` (new permission, justified). Response bod
 | II. Cross-Browser Compatibility | Same observer + hook path on Chrome and Firefox; Firefox `storage.session` feature-detected | ✅ PASS |
 | III. Simplicity & Minimal Change (YAGNI) | No debugger API, no new npm deps, no profile-schema change; observer registered only while recording | ✅ PASS |
 | IV. Managed, Maintained Dependencies | No new packages | ✅ PASS |
-| V. Test Discipline | Unit tests for pure log/cURL/match logic; e2e for the Logs tab flows | ✅ PASS (tests planned alongside implementation) |
+| V. Test Discipline | Unit tests for pure log/cURL/match logic; e2e for the Requests tab flows | ✅ PASS (tests planned alongside implementation) |
 
 **Gate result**: PROCEED. Two new permissions are justified in [research.md](research.md) (D1, D3) and do not violate “minimized.”
 
@@ -76,7 +76,7 @@ lib/
 
 entrypoints/
 ├── background.ts            # + observer lifecycle, webRequest listeners
-├── popup/App.tsx            # workspace Headers|Logs tabs; recording chip
+├── popup/App.tsx            # workspace Headers|Requests tabs; recording chip
 └── request-log-hook.ts      # NEW: content script (MAIN world), registered only while recording
 
 components/

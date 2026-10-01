@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, Button, TextField, Typography } from '@mui/material';
+import { Box, Button, Chip, TextField, Typography } from '@mui/material';
 import { matchesSocket } from '~/lib/log-search';
 import type { WsConnectionEntry } from '~/lib/types';
 import WebSocketDetail from './WebSocketDetail';
@@ -106,7 +106,19 @@ export default function WebSocketList({
             return (
               <Box
                 key={row.id}
-                sx={{ borderBottom: 1, borderColor: 'divider', py: 0.5 }}
+                sx={{
+                  mb: 0.5,
+                  px: 0.75,
+                  py: 0.75,
+                  border: 1,
+                  borderColor: open ? 'primary.main' : 'divider',
+                  borderRadius: 1,
+                  bgcolor: open ? 'action.selected' : 'background.paper',
+                  transition: 'border-color 120ms ease, background-color 120ms ease',
+                  '&:hover': {
+                    borderColor: open ? 'primary.main' : 'text.secondary',
+                  },
+                }}
               >
                 <Box
                   component="button"
@@ -114,57 +126,82 @@ export default function WebSocketList({
                   onClick={() => onExpand?.(open ? null : row.id)}
                   aria-expanded={open}
                   aria-label={`WebSocket ${row.url}`}
-                  style={{
+                  sx={{
                     width: '100%',
                     minWidth: 0,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
+                    gap: 0.75,
                     textAlign: 'left',
-                    background: 'none',
+                    background: 'transparent',
                     border: 0,
-                    padding: 0,
+                    p: 0,
                     cursor: 'pointer',
                     font: 'inherit',
                     color: 'inherit',
+                    '&:focus-visible': {
+                      outline: '2px solid',
+                      outlineColor: 'primary.main',
+                      outlineOffset: 2,
+                      borderRadius: 0.5,
+                    },
                   }}
                 >
                   <Typography
                     variant="caption"
                     color="text.secondary"
-                    sx={{ flexShrink: 0 }}
+                    title={new Date(row.startedAt).toLocaleString()}
+                    sx={{ flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
                   >
                     {new Date(row.startedAt).toLocaleTimeString()}
                   </Typography>
-                  <Typography
+                  <Chip
                     component="span"
-                    variant="caption"
+                    size="small"
+                    variant="outlined"
+                    label={stateLabel(row)}
                     aria-label={`State ${stateLabel(row)}`}
                     sx={{
-                      color: stateColor(row.state),
-                      fontWeight: 600,
+                      height: 20,
                       flexShrink: 0,
+                      color: stateColor(row.state),
+                      borderColor: stateColor(row.state),
+                      '& .MuiChip-label': { px: 0.75 },
                     }}
-                  >
-                    {stateLabel(row)}
-                  </Typography>
+                  />
                   <Typography
                     component="span"
                     variant="caption"
                     noWrap
                     title={row.url}
-                    sx={{ fontFamily: 'monospace', flex: 1, minWidth: 0 }}
+                    sx={{
+                      fontFamily: 'monospace',
+                      fontWeight: 500,
+                      flex: 1,
+                      minWidth: 0,
+                    }}
                   >
                     {row.url}
                   </Typography>
+                  <Chip
+                    component="span"
+                    size="small"
+                    label={`${row.messages.length} msg`}
+                    aria-label={`${row.messages.length} messages`}
+                    sx={{
+                      height: 20,
+                      flexShrink: 0,
+                      color: 'text.secondary',
+                      bgcolor: 'action.hover',
+                      '& .MuiChip-label': { px: 0.75 },
+                    }}
+                  />
                   <Typography
                     component="span"
-                    variant="caption"
-                    color="text.secondary"
-                    aria-label={`${row.messages.length} messages`}
-                    sx={{ flexShrink: 0 }}
+                    aria-hidden="true"
+                    sx={{ color: 'text.secondary', flexShrink: 0, lineHeight: 1 }}
                   >
-                    {row.messages.length} msg
+                    {open ? '▴' : '▾'}
                   </Typography>
                 </Box>
                 {open ? (

@@ -68,7 +68,7 @@ test.describe('WebSocket capture tab (spec 006)', () => {
     await expect(popup.getByLabel('State open')).toBeVisible();
 
     // FR-003: the handshake never shows up as an HTTP log row.
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     await expect(popup.getByText('/echo')).toHaveCount(0);
   });
 
@@ -141,6 +141,15 @@ test.describe('WebSocket capture tab (spec 006)', () => {
 
     await popup.bringToFront();
     await popup.getByLabel(`WebSocket ${echoServer.wsUrl}`).click();
+
+    const detail = popup.getByLabel('WebSocket detail');
+    await expect(detail.getByRole('heading', { name: 'Connection' })).toBeVisible();
+    await expect(detail.getByRole('heading', { name: 'Handshake' })).toBeVisible();
+    await expect(detail.getByText('Messages observed')).toBeVisible();
+    await expect(detail.getByText('#1', { exact: true })).toBeVisible();
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await detail.getByRole('button', { name: 'Copy WebSocket URL' }).click();
+    await expect(popup.getByText('Copied WebSocket URL')).toBeVisible();
     const messages = popup.getByRole('button', { name: /^(sent|received) message / });
     await expect(messages).toHaveCount(10, { timeout: 3000 });
     // Echo server replies after each send; direction pairs stay in order.
@@ -204,7 +213,7 @@ test.describe('WebSocket capture tab (spec 006)', () => {
     await row.click();
     await expect(popup.getByText('Messages (500)')).toBeVisible();
     expect(Date.now() - started).toBeLessThan(1000);
-    await popup.getByRole('tab', { name: /^Logs/ }).click();
+    await popup.getByRole('tab', { name: /^Requests/ }).click();
     started = Date.now();
     await popup.getByRole('tab', { name: /^WebSockets/ }).click();
     await expect(popup.getByRole('button', { name: 'Pause recording' })).toBeVisible();
@@ -234,7 +243,7 @@ test.describe('WebSocket capture tab (spec 006)', () => {
     await popup.waitForTimeout(800);
     await expect(wsRow).toHaveCount(0);
 
-    // Independent toggles: WebSocket recording does not start Logs recording.
+    // Independent toggles: WebSocket recording does not start Requests recording.
     await expect(popup.getByRole('tab', { name: 'Requests', exact: true })).toBeVisible();
     await popup.getByRole('tab', { name: 'Requests', exact: true }).click();
     await expect(popup.getByRole('button', { name: 'Start recording' })).toBeVisible();
@@ -244,9 +253,9 @@ test.describe('WebSocket capture tab (spec 006)', () => {
     await popup.bringToFront();
     await popup.waitForTimeout(800);
     await expect(popup.getByText('Start recording to capture patched requests.')).toBeVisible();
-    // Starting Logs recording leaves WebSocket recording on, and pausing it leaves WebSockets on.
+    // Starting Requests recording leaves WebSocket recording on, and pausing it leaves WebSockets on.
     await popup.getByRole('button', { name: 'Start recording' }).click();
-    await expect(popup.getByLabel('Recording Logs+WS')).toBeVisible();
+    await expect(popup.getByLabel('Recording Requests+WS')).toBeVisible();
     await popup.getByRole('button', { name: 'Pause recording' }).click();
     await expect(popup.getByRole('tab', { name: 'WebSockets · rec' })).toBeVisible();
     await expect(popup.getByRole('tab', { name: 'Requests', exact: true })).toBeVisible();

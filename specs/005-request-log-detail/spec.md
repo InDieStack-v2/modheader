@@ -16,11 +16,15 @@
 - Q: After the user starts recording, must XHR and fetch bodies be captured on tabs that were already open, without reloading those pages? → A: Already-open tabs capture XHR/fetch bodies as soon as recording is on. No reload required.
 - Q: Must API calls made by a service worker (not by the page itself) also have their request and response bodies captured? → A: Required for page-initiated XHR/fetch only. Service-worker calls may miss the response body.
 
+### Session 2026-10-02
+
+- Enhanced request detail keeps the existing Overview/Request/Response structure, but adds metadata chips, a one-click copy action for the stored request URL, clearer empty-header states, and bordered sections so completed and pending records are easier to scan.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Expand a Log Row to Open Detail (Priority: P1)
 
-On the Logs tab, each captured request is a compact row. Activating the row expands it in place and shows that request's full detail underneath. Activating the same row again collapses it. Opening another row closes the one that was open, so the compact popup stays scannable. Copy cURL still works on the collapsed row and does not expand it.
+On the Requests tab, each captured request is a compact row. Activating the row expands it in place and shows that request's full detail underneath. Activating the same row again collapses it. Opening another row closes the one that was open, so the compact popup stays scannable. Copy cURL still works on the collapsed row and does not expand it.
 
 **Why this priority**: The rest of the feature lives inside the expanded detail. Without a clear expand/collapse row, the user cannot reach bodies or the enhanced detail. This is the interaction model the user asked for.
 
@@ -28,12 +32,12 @@ On the Logs tab, each captured request is a compact row. Activating the row expa
 
 **Acceptance Scenarios**:
 
-1. **Given** at least one log row, **When** the user activates the row (not the copy-cURL control), **Then** that row expands in place and its request log detail is visible without leaving the Logs tab.
+1. **Given** at least one log row, **When** the user activates the row (not the copy-cURL control), **Then** that row expands in place and its request log detail is visible without leaving the Requests tab.
 2. **Given** a row is expanded, **When** the user activates the same row again, **Then** the detail collapses and the list returns to compact rows.
 3. **Given** one row is expanded, **When** the user expands a different row, **Then** the first row collapses and only the newly selected row is expanded.
 4. **Given** a collapsed row, **When** the user activates copy cURL, **Then** the command is copied and the row does not expand.
 5. **Given** a row is expanded, **When** that entry's status or bodies update (pending to a code, response body arrives), **Then** the open detail refreshes in place without the user collapsing and reopening it.
-6. **Given** the compact popup, **When** a row is expanded, **Then** the list still scrolls, the popup does not grow sideways, and the expanded detail is contained inside the Logs tab.
+6. **Given** the compact popup, **When** a row is expanded, **Then** the list still scrolls, the popup does not grow sideways, and the expanded detail is contained inside the Requests tab.
 
 ---
 
@@ -82,7 +86,7 @@ The expanded detail is organized so the user can move between an overview of the
 
 - What happens if the user expands a row and then the type filter hides it? The row disappears with the filter; no detail stays open for a hidden row. Showing the type again does not auto-reopen it.
 - What happens if the open entry is dropped by the 200-entry cap or the log is cleared? The detail closes and the list shows the remaining rows or the empty state.
-- What happens if the user switches profiles or leaves Logs? The expanded row does not carry over. Returning to Logs starts with all rows collapsed.
+- What happens if the user switches profiles or leaves Requests? The expanded row does not carry over. Returning to Requests starts with all rows collapsed.
 - What happens if the user switches to Headers and back while a row was expanded? The list is collapsed again (Headers is a different workspace tab; expand is not remembered).
 - What happens when a body is larger than the 64 KB store cap from feature 003? The stored truncated text is shown with a visible truncated marker. The user is not offered the omitted tail.
 - What happens when formatting structured text fails? The captured text is shown as-is. Formatting never hides or rewrites the stored body.
@@ -101,12 +105,12 @@ The expanded detail is organized so the user can move between an overview of the
 
 ### Functional Requirements
 
-- **FR-001**: Each log row MUST expand in place to show that entry's request log detail, and MUST collapse when activated again. Expand MUST NOT navigate away from the Logs tab.
+- **FR-001**: Each log row MUST expand in place to show that entry's request log detail, and MUST collapse when activated again. Expand MUST NOT navigate away from the Requests tab.
 - **FR-002**: At most one log row MAY be expanded at a time. Expanding a different row MUST collapse the previously expanded row.
 - **FR-003**: Copy cURL MUST remain available on the collapsed row and MUST NOT expand or collapse the row.
 - **FR-004**: The collapsed row MUST remain scannable: method, status, resource type, and truncated URL stay identifiable without opening the detail (as specified in feature 004).
 - **FR-005**: While a row is expanded, live updates to that entry (status, headers, bodies) MUST appear in the open detail without requiring the user to collapse and reopen it.
-- **FR-006**: Expand state MUST reset to all-collapsed when the user leaves the Logs tab, switches profile, clears the log, or the expanded entry is no longer visible.
+- **FR-006**: Expand state MUST reset to all-collapsed when the user leaves the Requests tab, switches profile, clears the log, or the expanded entry is no longer visible.
 - **FR-007**: The expanded detail MUST present the request body and the response body as separately labeled areas the user can read and distinguish.
 - **FR-008**: Text request and response bodies MUST be readable in the expanded detail. Empty or missing bodies MUST show an explicit empty/not-sent state. Pending responses MUST show a waiting state until the body arrives or is known to be empty, binary, or unavailable. Binary bodies MUST say they cannot be displayed as text. Unavailable bodies MUST say they are not available for this resource type. Truncated bodies MUST show a visible truncated marker.
 - **FR-009**: When a text body is valid structured data (JSON object or array), the detail MUST show it formatted for reading. When it is not structured or formatting is not possible, the detail MUST show the captured text unchanged.
@@ -131,7 +135,7 @@ The expanded detail is organized so the user can move between an overview of the
 
 ### Measurable Outcomes
 
-- **SC-001**: A user can open a log entry's detail in 1 click from the Logs list and see it without leaving the tab.
+- **SC-001**: A user can open a log entry's detail in 1 click from the Requests list and see it without leaving the tab.
 - **SC-002**: After a patched XHR or fetch with a text request body and a text response completes, a user can expand the row and read both captured bodies in under 10 seconds. A sample of such calls MUST show the real payloads, not empty or unavailable.
 - **SC-003**: A user can copy the request body or the response body from the expanded detail in 1 click each.
 - **SC-004**: 90% of first-time testers can point to the request body and the response body on an expanded row without extra documentation.

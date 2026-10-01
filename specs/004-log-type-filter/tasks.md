@@ -44,7 +44,7 @@ description: "Task list for feature implementation"
 
 ## Phase 3: User Story 1 - Filter the Log by Resource Type (Priority: P1) 🎯 MVP
 
-**Goal**: Logs tab always-visible type toggles; view-only filter; empty-by-filter state; session memory.
+**Goal**: Requests tab always-visible type toggles; view-only filter; empty-by-filter state; session memory.
 
 **Independent Test**: Record mixed traffic, click XHR only, only XHR rows show; click again, all rows return; stored log unchanged (quickstart scenario 1).
 
@@ -96,7 +96,7 @@ description: "Task list for feature implementation"
 
 - [X] T013 [US3] Replace the multi `Select` in `components/FilterEditor.tsx` with `ResourceTypeToggles mode="capture"` bound to `filter.resourceType`; remove the local `RESOURCE_TYPES` copy (import from `lib/resource-types.ts`)
 
-**Checkpoint**: Logs and Headers share one toggle component.
+**Checkpoint**: Requests and Headers share one toggle component.
 
 ---
 
@@ -128,12 +128,12 @@ description: "Task list for feature implementation"
 
 ### MVP
 
-**US1** (type filter). Ship US1+US2 together for a usable Logs tab.
+**US1** (type filter). Ship US1+US2 together for a usable Requests tab.
 
 ---
 
 ## Notes
 
 - Do not change the 003 observer or `RequestLogEntry` shape
-- Logs `[]` = all types; capture array length ≥ 1
+- Requests view `[]` = all types; capture array length ≥ 1
 - Profile tabs stay in the `Profiles` tablist (do not break tabbar e2e counts)

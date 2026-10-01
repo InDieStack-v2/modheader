@@ -79,7 +79,7 @@ describe('websocket resource type (spec 006)', () => {
     expect(typeShortLabel('websocket')).toBe('WS');
   });
 
-  it('shows in profile capture filters but not in the Logs filter', () => {
+  it('shows in profile capture filters but not in the Requests filter', () => {
     const values = (mode: 'logs' | 'capture') =>
       resourceTypesFor(mode).map((t) => t.value);
     expect(values('capture')).toContain('websocket');

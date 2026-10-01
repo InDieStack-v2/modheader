@@ -45,9 +45,9 @@ description: "Task list for feature implementation"
 
 ## Phase 3: User Story 1 - Expand a Log Row to Open Detail (Priority: P1) 🎯 MVP increment
 
-**Goal**: One in-place expanded row; collapse on second click or another row; copy cURL does not expand; expand resets when leaving Logs, switching profile, clearing, or the row disappears.
+**Goal**: One in-place expanded row; collapse on second click or another row; copy cURL does not expand; expand resets when leaving Requests, switching profile, clearing, or the row disappears.
 
-**Independent Test**: Two patched rows — expand first, expand second (first closes), collapse, copy cURL stays collapsed, Headers → Logs is all-collapsed (`specs/005-request-log-detail/quickstart.md` scenario 1).
+**Independent Test**: Two patched rows — expand first, expand second (first closes), collapse, copy cURL stays collapsed, Headers → Requests is all-collapsed (`specs/005-request-log-detail/quickstart.md` scenario 1).
 
 ### Tests for User Story 1
 
