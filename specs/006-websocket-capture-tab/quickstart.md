@@ -2,15 +2,16 @@
 
 ## Prerequisites
 
-- `npm install`. This adds `@msgpack/msgpack` (runtime, popup only) and `ws` (devDependency, for the e2e echo server).
-- `npm run dev` (Chrome) or `npm run dev:firefox`.
+- Enable Corepack (`corepack enable`); pnpm is pinned in `package.json`.
+- `pnpm install`. This installs `@msgpack/msgpack` (runtime, popup only) and `ws` (devDependency, for the e2e echo server).
+- `pnpm run dev` (Chrome) or `pnpm run dev:firefox`.
 
 ## Automated checks
 
 ```sh
-npm run test        # ws-decode, session-log socket ops, observer binding
-npm run test:e2e    # tests/e2e/websocket.spec.ts
-npm run lint && npm run compile
+pnpm run test       # ws-decode, session-log socket ops, observer binding
+pnpm run test:e2e   # tests/e2e/websocket.spec.ts
+pnpm run lint && pnpm run compile
 ```
 
 Expected unit coverage:

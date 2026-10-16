@@ -15,32 +15,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Sync version with git tag
-        # Strip the leading 'v' (v2.4.0 -> 2.4.0); updates package.json and
-        # package-lock.json in the CI workspace only, so zip filenames and the
-        # manifest version match the tag.
-        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+        # Strip the leading 'v' (v2.4.0 -> 2.4.0) in the CI workspace only,
+        # so zip filenames and the manifest version match the tag.
+        run: pnpm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
 
       - name: Lint
-        run: npm run lint
+        run: pnpm run lint
 
       - name: Type check
-        run: npm run compile
+        run: pnpm run compile
 
       - name: Unit tests
-        run: npm test
+        run: pnpm test
 
       - name: Build extension zips (Chrome + Firefox)
-        run: npm run zip
+        run: pnpm run zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

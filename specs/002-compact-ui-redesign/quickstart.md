@@ -9,21 +9,22 @@ below are in [contracts/ui-components.md](contracts/ui-components.md); state sem
 ## Prerequisites
 
 ```bash
-npm install
+corepack enable      # pnpm version is pinned in package.json
+pnpm install
 ```
 
 ## Automated checks (must all pass — Constitution V)
 
 ```bash
-npm run compile     # tsc --noEmit
-npm run lint        # eslint .
-npm run test        # vitest: includes reorderProfiles unit cases
-npm run test:e2e    # playwright: includes tests/e2e/tabbar.spec.ts + updated parity.spec.ts
+pnpm run compile    # tsc --noEmit
+pnpm run lint       # eslint .
+pnpm run test       # vitest: includes reorderProfiles unit cases
+pnpm run test:e2e   # playwright: includes tests/e2e/tabbar.spec.ts + updated parity.spec.ts
 ```
 
 ## Manual scenario 1 — Compact workspace by default (US1, SC-002, SC-003)
 
-1. `npm run dev`, then load the extension from `.output/chrome-mv3` and open the popup.
+1. `pnpm run dev`, then load the extension from `.output/chrome-mv3` and open the popup.
 2. **Expected**: the popup opens directly into the compact layout — left tab bar plus the
    active profile's header tables; no drawer to open, no tip/donate prompts visible.
 3. At the default popup width, count visible header rows: **≥5 without scrolling**.
@@ -66,7 +67,7 @@ npm run test:e2e    # playwright: includes tests/e2e/tabbar.spec.ts + updated pa
 Repeat scenarios 1–3 on Firefox:
 
 ```bash
-npm run dev:firefox   # load .output/firefox-mv3
+pnpm run dev:firefox  # load .output/firefox-mv3
 ```
 
 Pay special attention to drag-and-drop reordering and keyboard navigation, the two most

@@ -126,11 +126,11 @@
 
 **Goal**: No EOL dependencies, no deprecated APIs, single-command dual-browser packaging, constitution and docs aligned
 
-**Independent Test**: Dependency audit + `npm run zip` produces both store packages (quickstart build section)
+**Independent Test**: Dependency audit + `pnpm run zip` produces both store packages (quickstart build section)
 
 ### Implementation for User Story 4
 
-- [X] T042 [US4] Consolidate packaging in `package.json` + `wxt.config.ts`: `npm run build` and `npm run zip` produce Chrome/Firefox outputs; verify zips exclude junk files (FR-010); delete superseded `scripts/build.mjs`
+- [X] T042 [US4] Consolidate packaging in `package.json` + `wxt.config.ts`: `pnpm run build` and `pnpm run zip` produce Chrome/Firefox outputs; verify zips exclude junk files (FR-010); delete superseded `scripts/build.mjs`
 - [X] T043 [P] [US4] Run dependency audit (no EOL/unmaintained runtime deps — FR-006: AngularJS and Angular Material gone) and record results in `README.md`
 - [X] T044 [P] [US4] Verify no deprecated APIs remain (`execCommand`, `browserAction`, Chrome-72 sniffing — FR-007) and delete `src/styles/_DS_Store`
 - [X] T045 [US4] Delete legacy `src/` directory (only after T024, T036, T041 sign-off recorded in `checklists/parity.md`)
@@ -145,8 +145,8 @@
 
 **Purpose**: Release validation across all stories
 
-- [X] T048 Run full unit (`npm run test`) and E2E (`npm run test:e2e`) suites on Chromium and Firefox; fix all failures
-- [X] T049 [P] Verify `npm run lint` and `tsc --noEmit` are clean
+- [X] T048 Run full unit (`pnpm run test`) and E2E (`pnpm run test:e2e`) suites on Chromium and Firefox; fix all failures
+- [X] T049 [P] Verify `pnpm run lint` and `tsc --noEmit` are clean
 - [ ] T050 Execute all 10 manual scenarios in `specs/001-modernize-react-migration/quickstart.md` on both browsers; record final parity sign-off in `checklists/parity.md` (SC-002, SC-004)
 - [ ] T051 Install from produced zips on both browsers and confirm no deprecated-platform warnings (SC-001 readiness) and popup opens interactively in <300ms
 

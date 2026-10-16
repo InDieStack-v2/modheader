@@ -5,10 +5,10 @@
 ## Automated
 
 ```bash
-npm run compile
-npm run lint
-npm run test
-npm run test:e2e -- --project=chromium
+pnpm run compile
+pnpm run lint
+pnpm run test
+pnpm run test:e2e --project=chromium
 ```
 
 ## Manual / e2e scenarios

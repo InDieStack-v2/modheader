@@ -27,7 +27,7 @@ description: "Task list for feature implementation"
 
 **Purpose**: Baseline verification before touching the popup
 
-- [X] T001 Verify baseline green on a clean checkout: run `npm install && npm run compile && npm run lint && npm run test && npm run test:e2e` and confirm all pass before any change
+- [X] T001 Verify baseline green on a clean checkout: run `pnpm install && pnpm run compile && pnpm run lint && pnpm run test && pnpm run test:e2e` and confirm all pass before any change
 
 ---
 
@@ -40,7 +40,7 @@ description: "Task list for feature implementation"
 - [X] T002 [P] Add pure `reorderProfiles(profiles: Profile[], from: number, to: number): Profile[]` helper to `lib/profiles.ts` — returns a new array with the element moved `from` → `to`, input not mutated, indices clamped, `from === to` returns an equivalent copy (contract in `specs/002-compact-ui-redesign/data-model.md`)
 - [X] T003 [P] Add unit tests for `reorderProfiles` in `tests/unit/profiles.test.ts` — middle move, move to start, move to end, `from === to` no-op, out-of-range clamping, input array not mutated; tests written alongside the helper per Constitution V
 
-**Checkpoint**: `npm run test` passes with the new helper covered — user story implementation can now begin
+**Checkpoint**: `pnpm run test` passes with the new helper covered — user story implementation can now begin
 
 ---
 
@@ -48,7 +48,7 @@ description: "Task list for feature implementation"
 
 **Goal**: Popup opens directly into a compact, minimalist workspace focused on the active profile's header rules — no drawer, no AppBar chrome, no tips/donate prompts; paused/tab-lock state shown as compact indicators
 
-**Independent Test**: Open the popup (`npm run dev`, load `.output/chrome-mv3`) — it shows the compact workspace immediately with ≥5 header rows visible without scrolling and all header-editing actions functional (spec US1 scenarios, SC-002/SC-003)
+**Independent Test**: Open the popup (`pnpm run dev`, load `.output/chrome-mv3`) — it shows the compact workspace immediately with ≥5 header rows visible without scrolling and all header-editing actions functional (spec US1 scenarios, SC-002/SC-003)
 
 ### Tests for User Story 1
 
@@ -63,7 +63,7 @@ description: "Task list for feature implementation"
 - [X] T007 [P] [US1] Compact density pass on `components/FilterEditor.tsx`: minimal collapsible presentation, `size="small"` controls, same functionality (FR-003)
 - [X] T008 [P] [US1] Apply theme density tweaks in `entrypoints/popup/main.tsx`: smaller typography scale and default component paddings via the existing MUI theme (research R5 — standard MUI density props only, no custom design system)
 
-**Checkpoint**: US1 fully functional — popup opens compact, all editing works, `npm run test:e2e` parity suite green with the new layout
+**Checkpoint**: US1 fully functional — popup opens compact, all editing works, `pnpm run test:e2e` parity suite green with the new layout
 
 ---
 
@@ -84,7 +84,7 @@ description: "Task list for feature implementation"
 - [X] T010 [US2] Create `components/ProfileTabBar.tsx` per the props + behavioral contract in `specs/002-compact-ui-redesign/contracts/ui-components.md`: MUI `Tabs orientation="vertical"` with one `Tab` per profile, selected-tab indicator (FR-006), title truncation with tooltip, internal scrolling (FR-009), inline rename on double-click/context-menu with Enter/blur commit and Escape cancel, per-tab context menu (Rename / Duplicate / Delete — Delete disabled when one profile remains, FR-010), HTML5 drag-and-drop calling `onReorder` (research R1), "+ New profile" control, roving-tabindex arrow-key navigation from MUI Tabs (FR-016)
 - [X] T011 [US2] Wire `ProfileTabBar` into `entrypoints/popup/App.tsx`: left-edge placement beside the workspace; `onSelect` persists `selectedProfileIndex` (FR-008); `onCreate`/`onDuplicate` append and select; `onRename` updates `title` via `saveProfile`; `onReorder` uses `reorderProfiles` and recomputes `selectedProfileIndex` so the active profile follows; `onDelete` removes the profile, selects the nearest remaining one, and holds it in an `undoBuffer`; render Undo `Snackbar` (~5s auto-hide) that re-inserts at the original index and re-selects (FR-017); remove the interim ☰ drawer toggle and `Drawer` from the toolbar, remove Delete/Clone items from the `⋮` menu; delete `components/ProfileList.tsx`
 
-**Checkpoint**: US2 fully functional — tab bar manages all profile lifecycle actions, `tests/e2e/tabbar.spec.ts` green, no references to `ProfileList` remain (`npm run compile && npm run lint`)
+**Checkpoint**: US2 fully functional — tab bar manages all profile lifecycle actions, `tests/e2e/tabbar.spec.ts` green, no references to `ProfileList` remain (`pnpm run compile && pnpm run lint`)
 
 ---
 
@@ -107,10 +107,10 @@ description: "Task list for feature implementation"
 
 **Purpose**: Full-suite verification and cross-browser sign-off
 
-- [X] T014 [P] Run `npm run compile && npm run lint && npm run test` and fix any failures
-- [X] T015 Run full `npm run test:e2e` and fix any failures across all specs
-- [X] T016 Manual quickstart validation on Chrome: execute all three scenarios in `specs/002-compact-ui-redesign/quickstart.md` against `npm run dev` (`.output/chrome-mv3`)
-- [ ] T017 Manual quickstart validation on Firefox: repeat all scenarios against `npm run dev:firefox` (`.output/firefox-mv3`), focusing on drag-and-drop reorder and keyboard navigation (Constitution II)
+- [X] T014 [P] Run `pnpm run compile && pnpm run lint && pnpm run test` and fix any failures
+- [X] T015 Run full `pnpm run test:e2e` and fix any failures across all specs
+- [X] T016 Manual quickstart validation on Chrome: execute all three scenarios in `specs/002-compact-ui-redesign/quickstart.md` against `pnpm run dev` (`.output/chrome-mv3`)
+- [ ] T017 Manual quickstart validation on Firefox: repeat all scenarios against `pnpm run dev:firefox` (`.output/firefox-mv3`), focusing on drag-and-drop reorder and keyboard navigation (Constitution II)
 - [X] T018 [P] Review `README.md` for popup-UI descriptions/screenshots made stale by the redesign (drawer, tips, profile panel) and update them to the compact tab-bar layout
 
 ---

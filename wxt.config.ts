@@ -25,7 +25,8 @@ export default defineConfig({
   // makes Chromium log benign "cross-world extension resource mismatch"
   // preload warnings. Preloading buys nothing at this bundle size — disable it.
   vite: () => ({
-    build: { modulePreload: false },
+    // Extension assets load from disk, so the 500 kB network-size warning is noise.
+    build: { modulePreload: false, chunkSizeWarningLimit: 2000 },
   }),
   manifest: ({ browser, mode }) => {
     // Dev builds share chrome://extensions with the installed copy; a distinct
@@ -56,6 +57,17 @@ export default defineConfig({
         ...(browser === 'firefox' ? [] : ['offscreen']),
       ],
       host_permissions: ['<all_urls>'],
+      // Firefox MV3 requires an explicit add-on ID. 140+ for data_collection_permissions
+      // (also covers scripting world: 'MAIN', 128+).
+      ...(browser === 'firefox' && {
+        browser_specific_settings: {
+          gecko: {
+            id: 'modheaderx@quangnd2dev.com',
+            strict_min_version: '140.0',
+            data_collection_permissions: { required: ['none'] },
+          },
+        },
+      }),
       action: {
         default_title: name,
         default_icon: {

@@ -7,21 +7,22 @@ Contracts: [request-log.md](contracts/request-log.md), [ui-components.md](contra
 ## Prerequisites
 
 ```bash
-npm install
+corepack enable      # pnpm version is pinned in package.json
+pnpm install
 ```
 
 ## Automated checks (Constitution V)
 
 ```bash
-npm run compile
-npm run lint
-npm run test          # includes request-match, request-body, curl, session-log
-npm run test:e2e      # includes tests/e2e/request-log.spec.ts
+pnpm run compile
+pnpm run lint
+pnpm run test         # includes request-match, request-body, curl, session-log
+pnpm run test:e2e     # includes tests/e2e/request-log.spec.ts
 ```
 
 ## Manual scenario 1 — Workspace tabs (US1)
 
-1. `npm run dev`, load `.output/chrome-mv3`, open the popup.
+1. `pnpm run dev`, load `.output/chrome-mv3`, open the popup.
 2. **Expected**: workspace shows **Headers | Requests**; Headers is selected; filters and header tables work as today.
 3. Switch to Requests and back. **Expected**: editor content intact; active profile unchanged.
 4. Switch profile in the left bar. **Expected**: Headers is selected again.
@@ -46,7 +47,7 @@ npm run test:e2e      # includes tests/e2e/request-log.spec.ts
 
 ## Manual scenario 4 — Firefox
 
-1. `npm run dev:firefox`, repeat scenarios 1–3.
+1. `pnpm run dev:firefox`, repeat scenarios 1–3.
 2. **Expected**: same user-visible behavior. Session reset on full Firefox restart still holds (`storage.session` or onStartup fallback).
 
 ## Cross-check

@@ -27,7 +27,7 @@ description: "Task list for feature implementation"
 
 **Purpose**: Permissions and shared types before any UI or observer work
 
-- [X] T001 Verify baseline green: `npm run compile && npm run lint && npm run test && npm run test:e2e`
+- [X] T001 Verify baseline green: `pnpm run compile && pnpm run lint && pnpm run test && pnpm run test:e2e`
 - [X] T002 Add `webRequest` and `scripting` to `permissions` in `wxt.config.ts` (both browsers). Do not add `webRequestBlocking`, `debugger`, or `declarativeNetRequestFeedback` (research D7)
 - [X] T003 [P] Add `NameValue`, `BodyCapture`, `RequestLogEntry`, and `RequestLogState` types to `lib/types.ts` per `specs/003-profile-request-logs/data-model.md`. Do not add fields to `Profile` or `RuntimeState`
 
@@ -44,7 +44,7 @@ description: "Task list for feature implementation"
 - [X] T006 Implement session log store in `lib/session-log.ts` per contract: `getRequestLogState`, `setRecording`, `appendOrUpdateEntry`, `clearEntries`, `remapOnReorder`, `dropAt`, `insertSlot`, `ensureSlots`, `subscribeRequestLog`. Prefer `browser.storage.session`; fall back to `storage.local` + wipe in a function the background will call from `runtime.onStartup`. Include a unit-testable `isSessionStoreAvailable()` (or equivalent) so Firefox without `storage.session` takes the local+onStartup path. Cap 200 newest-first; evict oldest if estimated payload would exceed 8 MB
 - [X] T007 Unit tests for the session-log helpers in `tests/unit/session-log.test.ts` — upsert by id, 200-cap drop, remap on reorder, dropAt shifts indices, insertSlot at index leaves neighbors’ logs in place and inserts empty/off, recording default off; plus a case that the local fallback wipe function clears keys (mock `browser.storage` like existing unit tests)
 
-**Checkpoint**: `npm run test` covers match + session-log. User stories can start.
+**Checkpoint**: `pnpm run test` covers match + session-log. User stories can start.
 
 ---
 
@@ -66,7 +66,7 @@ description: "Task list for feature implementation"
 - [X] T010 [P] [US1] Add placeholder `components/RequestLogList.tsx` that accepts `RequestLogListProps` from the UI contract and renders a static empty/paused state (start control can be disabled until US2)
 - [X] T011 [US1] Render `RequestLogList` on the Requests tab from `entrypoints/popup/App.tsx`
 
-**Checkpoint**: US1 independently testable. `npm run test:e2e -- tests/e2e/request-log.spec.ts` US1 cases pass.
+**Checkpoint**: US1 independently testable. `pnpm run test:e2e tests/e2e/request-log.spec.ts` US1 cases pass.
 
 ---
 
@@ -140,7 +140,7 @@ description: "Task list for feature implementation"
 - [X] T030 [US4] Body panels in `components/RequestLogDetail.tsx` (text / empty / binary / unavailable / truncated / waiting). Non-XHR response bodies use `unavailable`
 - [X] T031 [US4] Copy-cURL icon button on each collapsed row in `components/RequestLogList.tsx` — `navigator.clipboard.writeText`, existing snackbar; if `bodyOmitted`, say the body was skipped (FR-024, FR-025)
 
-**Checkpoint**: US4 independently testable. `npm run test` + request-log e2e green.
+**Checkpoint**: US4 independently testable. `pnpm run test` + request-log e2e green.
 
 ---
 
@@ -149,8 +149,8 @@ description: "Task list for feature implementation"
 **Purpose**: Full quickstart, both browsers, no regressions
 
 - [X] T032 Extend `tests/e2e/request-log.spec.ts` for global-pause (recording resets off, no new rows, Recording chip gone) and export/backup containing no log keys
-- [X] T033 Run `specs/003-profile-request-logs/quickstart.md` automated commands and Chrome manual scenarios 1–3. On Firefox (`npm run dev:firefox`), confirm recording + a patched row, popup close keeps the log, full restart clears it (proves `storage.session` or local+onStartup fallback). Record the Firefox result in the PR/change description (Principle II)
-- [X] T034 `npm run compile && npm run lint && npm run test && npm run test:e2e` all green; existing tabbar/parity/headers suites still pass
+- [X] T033 Run `specs/003-profile-request-logs/quickstart.md` automated commands and Chrome manual scenarios 1–3. On Firefox (`pnpm run dev:firefox`), confirm recording + a patched row, popup close keeps the log, full restart clears it (proves `storage.session` or local+onStartup fallback). Record the Firefox result in the PR/change description (Principle II)
+- [X] T034 `pnpm run compile && pnpm run lint && pnpm run test && pnpm run test:e2e` all green; existing tabbar/parity/headers suites still pass
 
 ---
 

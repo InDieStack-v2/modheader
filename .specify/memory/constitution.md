@@ -1,6 +1,20 @@
 <!--
   Sync Impact Report
   ------------------
+  Version change: 2.1.0 -> 2.1.1 (PATCH: align package-manager wording and commands
+  with the pnpm migration; dependency and test requirements are unchanged)
+  Modified principles: IV. Managed, Maintained Dependencies; V. Test Discipline
+  Modified sections: Development Workflow
+  Added sections: none
+  Removed sections: none
+  Templates requiring updates: none (plan/spec/tasks templates are manager-neutral)
+  Runtime guidance docs: README.md and feature quickstarts updated to pnpm
+  Command files: unchanged (generic package-publishing references remain applicable)
+  Follow-up TODOs: none
+-->
+<!--
+  Sync Impact Report
+  ------------------
   Version change: 2.0.0 -> 2.1.0 (MINOR: expanded guidance on runtime-state durability,
   requested by feature 006-websocket-capture-tab analysis finding C1)
   Modified sections:
@@ -71,9 +85,10 @@ Three similar lines are preferable to a premature abstraction.
 
 ### IV. Managed, Maintained Dependencies
 
-Dependencies are managed through npm and locked by the project's lockfile. No runtime
-dependency of the shipped extension may be end-of-life or unmaintained. Adding or
-upgrading a dependency MUST be justified in the change description and limited to the
+Dependencies are managed through pnpm, pinned in `package.json`, and locked by
+`pnpm-lock.yaml`. No runtime dependency of the shipped extension may be end-of-life or
+unmaintained. Adding or upgrading a dependency MUST be justified in the change
+description and limited to the
 minimum necessary scope. Vendoring a library by copying it into the source tree is
 prohibited except for assets that are not publishable packages (e.g., icons).
 
@@ -85,8 +100,8 @@ no-end-of-life requirement (FR-006 of feature 001).
 
 Core logic (anything under `lib/` or equivalent non-UI modules) MUST have unit tests, and
 major user flows MUST have end-to-end browser tests. Tests for a change MUST be written
-before or alongside its implementation, and the suites (`npm run test`,
-`npm run test:e2e`) MUST pass before a change is considered done. Release sign-off
+before or alongside its implementation, and the suites (`pnpm run test`,
+`pnpm run test:e2e`) MUST pass before a change is considered done. Release sign-off
 additionally requires the manual cross-browser verification scenarios in the active
 feature's quickstart guide.
 
@@ -115,10 +130,12 @@ two browsers against regressions.
 
 ## Development Workflow
 
-1. `npm install`, then `npm run dev` (Chrome) or `npm run dev:firefox` for live reload.
+1. Enable Corepack (`corepack enable`) to use the pnpm version pinned in `package.json`.
+   Run `pnpm install`, then `pnpm run dev` (Chrome) or `pnpm run dev:firefox` for live
+   reload. CI MUST install with `pnpm install --frozen-lockfile`.
 2. Implement the change with a minimal diff (Principle III) and the required tests
    (Principle V).
-3. `npm run test`, `npm run test:e2e`, and `npm run lint` MUST pass.
+3. `pnpm run test`, `pnpm run test:e2e`, and `pnpm run lint` MUST pass.
 4. Verify on both browsers for any change touching extension APIs (Principle II).
 5. Before merge, review against every principle in this constitution; any violation MUST
    be either fixed or explicitly justified and recorded in the change description.
@@ -138,4 +155,4 @@ All reviews MUST verify compliance with the principles above. Complexity that co
 with Principle III MUST be justified in writing. For runtime development guidance, use
 `README.md`.
 
-**Version**: 2.1.0 | **Ratified**: 2026-07-31 | **Last Amended**: 2026-09-29
+**Version**: 2.1.1 | **Ratified**: 2026-07-31 | **Last Amended**: 2026-10-16

@@ -23,7 +23,7 @@ description: "Task list for feature implementation"
 
 **Purpose**: Confirm 003 baseline before UI work
 
-- [X] T001 Verify `npm run compile && npm run lint && npm run test` is green on the current tree
+- [X] T001 Verify `pnpm run compile && pnpm run lint && pnpm run test` is green on the current tree
 
 ---
 
@@ -38,7 +38,7 @@ description: "Task list for feature implementation"
 - [X] T004 Extend `lib/session-log.ts` with `requestLogTypeFilter: string[][]`: get/set, `ensureSlots` / `remapOnReorder` / `dropAt` / `insertSlot` keep this array aligned, `clearEntries` resets that profile’s filter to `[]`
 - [X] T005 Unit tests in `tests/unit/session-log.test.ts` for type-filter remap/drop/insert/clear
 
-**Checkpoint**: `npm run test` covers resource-types + session filter.
+**Checkpoint**: `pnpm run test` covers resource-types + session filter.
 
 ---
 
@@ -102,7 +102,7 @@ description: "Task list for feature implementation"
 
 ## Phase 6: Polish
 
-- [X] T014 Run `specs/004-log-type-filter/quickstart.md` automated commands and Chromium scenarios 1–3; `npm run compile && npm run lint && npm run test && npx playwright test --project=chromium` green (existing tabbar/parity still pass)
+- [X] T014 Run `specs/004-log-type-filter/quickstart.md` automated commands and Chromium scenarios 1–3; `pnpm run compile && pnpm run lint && pnpm run test && pnpm exec playwright test --project=chromium` green (existing tabbar/parity still pass)
 
 ---
 

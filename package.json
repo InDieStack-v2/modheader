@@ -5,6 +5,7 @@
   "license": "MIT",
   "description": "Modify HTTP request and response headers (MV3 rewrite: WXT + React + TypeScript)",
   "type": "module",
+  "packageManager": "pnpm@12.11.2",
   "scripts": {
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox --mv3",

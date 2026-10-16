@@ -17,9 +17,9 @@
 
 ## Phase 1: Setup
 
-- [X] T001 Add `@msgpack/msgpack` to `dependencies` and `ws` + `@types/ws` to `devDependencies` in package.json via `npm install @msgpack/msgpack && npm install -D ws @types/ws`. Confirm neither package is deprecated or end-of-life (`npm view <pkg> deprecated time.modified`), and commit package-lock.json
+- [X] T001 Add `@msgpack/msgpack` to `dependencies` and `ws` + `@types/ws` to `devDependencies` in package.json via `pnpm add @msgpack/msgpack && pnpm add -D ws @types/ws`. Confirm neither package is deprecated or end-of-life (`pnpm view <pkg> deprecated time.modified`), and commit pnpm-lock.yaml
 - [X] T002 [P] Add a `ws` echo server to tests/e2e/fixtures.ts. Expose `wsUrl` and `lastUpgradeHeaders`, echo every text or binary frame back unchanged, and close with the requested code and reason when it receives the text `__close:<code>:<reason>`. Serve an HTML page at `/ws-page` whose inline script exposes `window.openWs(url)`, `window.sendWs(data)` (string, or an array of bytes → Uint8Array) and `window.closeWs()`
-- [X] T003 Spike: in Chrome and Firefox (`npm run dev` / `npm run dev:firefox` + the T002 page), log which `webRequest` events fire for a ws handshake (type, statusCode) and whether `onCompleted` / `onErrorOccurred` fire when an open socket later closes. Record the results under a "Spike results" heading at the end of specs/006-websocket-capture-tab/research.md (R1). If either browser doesn't report type `websocket`, stop and revisit the plan
+- [X] T003 Spike: in Chrome and Firefox (`pnpm run dev` / `pnpm run dev:firefox` + the T002 page), log which `webRequest` events fire for a ws handshake (type, statusCode) and whether `onCompleted` / `onErrorOccurred` fire when an open socket later closes. Record the results under a "Spike results" heading at the end of specs/006-websocket-capture-tab/research.md (R1). If either browser doesn't report type `websocket`, stop and revisit the plan
 
 ---
 
@@ -38,7 +38,7 @@
 - [X] T009 [P] Write failing unit tests in tests/unit/resource-types.test.ts: `STANDARD_RESOURCE_TYPES` includes `{value:'websocket', label:'WebSocket', shortLabel:'WS'}`; `typeShortLabel('websocket') === 'WS'`; a new `resourceTypesFor('logs')` leaves out websocket and `resourceTypesFor('capture')` includes it
 - [X] T010 [P] Add the websocket type and `resourceTypesFor(mode)` in lib/resource-types.ts. Make components/ResourceTypeToggles.tsx iterate `resourceTypesFor(mode)` instead of `STANDARD_RESOURCE_TYPES`. Make T009 pass
 
-**Checkpoint**: the store and types are ready, and `npm run test` passes.
+**Checkpoint**: the store and types are ready, and `pnpm run test` passes.
 
 ---
 
@@ -68,7 +68,7 @@
   - initialise `logState.sockets` to `[]`;
   - render `<WebSocketList>` with the same `recording`, `canRecord` and `onToggleRecording` logic as RequestLogList, `connections = logState.sockets[profileIndex] ?? []`, and `onClear` calling `clearSockets(profileIndex)`;
   - add an `expandedSocketId` state that resets on profile switch, tab switch and clear (the same places `expandedLogId` resets)
-- [X] T015 [US1] Run `npm run test:e2e -- websocket` until T011 passes in Chrome
+- [X] T015 [US1] Run `pnpm run test:e2e websocket` until T011 passes in Chrome
 
 **Checkpoint**: US1 works on its own. The connection list is live and Requests is clean.
 
@@ -124,7 +124,7 @@
   - the message list oldest first with ↑/↓, time, size, a 120-character preview (or `binary · N B`) and a truncated marker;
   - one expanded message at a time, showing a view `ToggleButtonGroup` (Text · JSON · Hex · Base64 · MessagePack) that starts at `autoView(msg)`, a monospace `decode()` output or reason notice, and a copy button that copies `msg.data` (the original)
 - [X] T025 [US2] Render `<WebSocketDetail>` for the expanded connection inside `<WebSocketList>` from entrypoints/popup/App.tsx (or inside WebSocketList.tsx, matching how RequestLogList hosts RequestLogDetail)
-- [X] T026 [US2] Run `npm run test && npm run test:e2e -- websocket` until T016–T018 pass
+- [X] T026 [US2] Run `pnpm run test && pnpm run test:e2e websocket` until T016–T018 pass
 
 **Checkpoint**: US1 and US2 work. Messages are captured, decoded and live.
 
@@ -144,7 +144,7 @@
 ### Implementation for User Story 3
 
 - [X] T029 [US3] Verify, and fix where needed, that pausing stops hook appends: in lib/request-log-observer.ts, drop `modheader:ws` messages and discard any pending buffer for that profile when `recording[index]` is false at flush time. Deleting a profile (`dropAt`) and undoing it (`insertSlot`) leave empty socket slots through T006
-- [X] T030 [US3] Run `npm run test && npm run test:e2e -- websocket` until T027–T028 pass
+- [X] T030 [US3] Run `pnpm run test && pnpm run test:e2e websocket` until T027–T028 pass
 
 **Checkpoint**: all stories work on their own.
 
@@ -153,8 +153,8 @@
 ## Phase 6: Polish & Cross-Cutting
 
 - [X] T031 [P] Update the README.md feature list with the WebSockets tab (capture, decoded views, and the worker-socket limitation)
-- [X] T032 Run the full suite `npm run lint && npm run compile && npm run test && npm run test:e2e` and fix any regressions, especially in tests/e2e/request-log.spec.ts, which is affected by the 7 MB budget and by ws rows leaving Requests
-- [ ] T033 Manual sign-off: run quickstart scenarios 1–8 and 13 in both Chrome and Firefox (`npm run dev:firefox`), and record the results in the change description (Principle II, V)
+- [X] T032 Run the full suite `pnpm run lint && pnpm run compile && pnpm run test && pnpm run test:e2e` and fix any regressions, especially in tests/e2e/request-log.spec.ts, which is affected by the 7 MB budget and by ws rows leaving Requests
+- [ ] T033 Manual sign-off: run quickstart scenarios 1–8 and 13 in both Chrome and Firefox (`pnpm run dev:firefox`), and record the results in the change description (Principle II, V)
 
 ---
 

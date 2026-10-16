@@ -26,7 +26,7 @@ description: "Task list for feature implementation"
 
 **Purpose**: Confirm 003/004 baseline before capture/UI work
 
-- [X] T001 Verify `npm run compile && npm run lint && npm run test` is green on the current tree
+- [X] T001 Verify `pnpm run compile && pnpm run lint && pnpm run test` is green on the current tree
 
 ---
 
@@ -39,7 +39,7 @@ description: "Task list for feature implementation"
 - [X] T002 Write failing unit tests in `tests/unit/request-match.test.ts` for `pickEntryForBody`: completed (non-pending) rows match; 10s window; skip rows whose target body is already `text`/`binary`; oldest `startedAt` then lowest `id`; relative URL after `sanitizeLogUrl` of an absolute hook URL; default `which` is `'response'`
 - [X] T003 Implement `pickEntryForBody(entries, input, which?: 'request' | 'response')` in `lib/request-match.ts` per `specs/005-request-log-detail/contracts/request-log.md` (no `pending` requirement; 10s window; `which` selects which body must still be empty/unavailable)
 
-**Checkpoint**: `npm run test` — new `pickEntryForBody` cases pass.
+**Checkpoint**: `pnpm run test` — new `pickEntryForBody` cases pass.
 
 ---
 
@@ -108,7 +108,7 @@ description: "Task list for feature implementation"
 
 **Purpose**: Full validation across stories
 
-- [X] T017 Run `specs/005-request-log-detail/quickstart.md` automated commands and Chromium scenarios 1–3; `npm run compile && npm run lint && npm run test && npx playwright test --project=chromium` green (existing tabbar/parity/request-log still pass)
+- [X] T017 Run `specs/005-request-log-detail/quickstart.md` automated commands and Chromium scenarios 1–3; `pnpm run compile && pnpm run lint && pnpm run test && pnpm exec playwright test --project=chromium` green (existing tabbar/parity/request-log still pass)
 
 ---
 

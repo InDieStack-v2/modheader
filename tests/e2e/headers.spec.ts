@@ -5,7 +5,7 @@ import type { Profile } from '../../lib/types';
 /**
  * E2E: request (T022) and response (T023) header modification via the built
  * extension against the local header-echo server (quickstart scenario 1).
- * Requires `npm run build` to have produced .output/chrome-mv3.
+ * Requires `pnpm run build` to have produced .output/chrome-mv3.
  */
 
 async function backgroundWorker(context: BrowserContext): Promise<Worker> {

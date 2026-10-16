@@ -7,21 +7,22 @@ Contracts: [request-log.md](contracts/request-log.md), [ui-components.md](contra
 ## Prerequisites
 
 ```bash
-npm install
+corepack enable      # pnpm version is pinned in package.json
+pnpm install
 ```
 
 ## Automated checks (Constitution V)
 
 ```bash
-npm run compile
-npm run lint
-npm run test          # pickEntryForBody, formatBodyForDisplay, body merge
-npm run test:e2e      # includes already-open-tab body capture + expand/copy
+pnpm run compile
+pnpm run lint
+pnpm run test         # pickEntryForBody, formatBodyForDisplay, body merge
+pnpm run test:e2e     # includes already-open-tab body capture + expand/copy
 ```
 
 ## Manual scenario 1 — Expand / collapse (US1)
 
-1. `npm run dev`, load `.output/chrome-mv3`, start recording, generate two patched requests.
+1. `pnpm run dev`, load `.output/chrome-mv3`, start recording, generate two patched requests.
 2. Open Requests. Click the first row (not cURL). **Expected**: detail opens under that row.
 3. Click the second row. **Expected**: first collapses; only the second is open.
 4. Click the open row again. **Expected**: collapsed.
@@ -56,7 +57,7 @@ This is the failure mode that shipped empty bodies.
 
 ## Manual scenario 5 — Firefox
 
-1. `npm run dev:firefox`, repeat scenarios 1–3.
+1. `pnpm run dev:firefox`, repeat scenarios 1–3.
 2. **Expected**: same user-visible behavior, including already-open-tab capture.
 
 ## Cross-check

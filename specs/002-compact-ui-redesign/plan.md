@@ -26,7 +26,7 @@ runtime dependencies are added — drag-and-drop uses native HTML5 drag events.
 
 **Storage**: `chrome.storage.local` via `lib/storage.ts` — schema unchanged (`RuntimeState.selectedProfileIndex` already persists the active profile)
 
-**Testing**: Vitest 4 (`npm run test`, unit), Playwright 1.62 (`npm run test:e2e`, Chrome e2e), ESLint + `tsc --noEmit`
+**Testing**: Vitest 4 (`pnpm run test`, unit), Playwright 1.62 (`pnpm run test:e2e`, Chrome e2e), ESLint + `tsc --noEmit`
 
 **Target Platform**: Chrome and Firefox extension popup, Manifest V3 (WXT-built)
 

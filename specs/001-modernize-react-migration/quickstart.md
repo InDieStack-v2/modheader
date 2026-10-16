@@ -2,17 +2,17 @@
 
 ## Prerequisites
 
-- Node.js ≥ 20 and npm
+- Node.js ≥ 20 and Corepack enabled (`corepack enable`); pnpm is pinned in `package.json`
 - Current stable Chrome and Firefox
 - Clean checkout of branch `001-modernize-react-migration`
 
 ## Setup & Build
 
 ```bash
-npm install          # one-time
-npm run dev          # dev build with HMR (Chrome); `npm run dev:firefox` for Firefox
-npm run build        # production builds: .output/chrome-mv3 + .output/firefox-mv3
-npm run zip          # store-ready zips for both browsers (supersedes scripts/build.mjs)
+pnpm install         # one-time
+pnpm run dev         # dev build with HMR (Chrome); `pnpm run dev:firefox` for Firefox
+pnpm run build       # production build: .output/chrome-mv3; use build:firefox for Firefox
+pnpm run zip         # store-ready zips for both browsers (supersedes scripts/build.mjs)
 ```
 
 Expected: both builds complete without errors; zips contain no OS junk files (FR-010).
@@ -26,8 +26,8 @@ Expected: both builds complete without errors; zips contain no OS junk files (FR
 ## Automated Validation
 
 ```bash
-npm run test         # Vitest unit tests (dnr compiler, migration, chunking, profiles)
-npm run test:e2e     # Playwright: real header modification + parity + migration flows
+pnpm run test        # Vitest unit tests (dnr compiler, migration, chunking, profiles)
+pnpm run test:e2e    # Playwright: real header modification + parity + migration flows
 ```
 
 ## Manual Validation Scenarios (feature parity, FR-002)

@@ -27,26 +27,31 @@ ModHeaderX is MIT licensed (see [LICENSE](LICENSE)), so you're free to fork, red
 
 ## Installation
 
-To load a development build instead: `npm install`, then `npm run build`
-(or `npm run build:firefox`) and load the produced `.output/chrome-mv3`
-(`.output/firefox-mv3`) directory as an unpacked extension. `npm run zip`
+To load a development build instead, complete the pnpm setup below, then run `pnpm run build`
+(or `pnpm run build:firefox`) and load the produced `.output/chrome-mv3`
+(`.output/firefox-mv3`) directory as an unpacked extension. `pnpm run zip`
 produces store-ready packages for both browsers.
 
 ## Development
 
 ModHeaderX is built with a Node.js toolchain (WXT + React + TypeScript).
+Use pnpm 12.11.2, pinned by the `packageManager` field in `package.json`.
+Enable Corepack before installing dependencies (`corepack enable`); if your Node.js
+installation does not include Corepack, install Corepack first.
+CI installs dependencies with `pnpm install --frozen-lockfile`.
 
-```
-npm install          # install dependencies (postinstall runs `wxt prepare`)
-npm run dev          # Chrome dev build with live reload
-npm run dev:firefox  # Firefox dev build with live reload
-npm run build        # production build → .output/chrome-mv3
-npm run build:firefox# production build → .output/firefox-mv3
-npm run zip          # store-ready zips for both browsers → dist/*.zip
-npm run test         # unit tests (vitest)
-npm run test:e2e     # end-to-end tests (playwright; requires a prior build)
-npm run lint         # eslint
-npm run compile      # type-check only (tsc --noEmit)
+```sh
+corepack enable      # use the package manager pinned in package.json
+pnpm install         # install dependencies (postinstall runs `wxt prepare`)
+pnpm run dev         # Chrome dev build with live reload
+pnpm run dev:firefox # Firefox dev build with live reload
+pnpm run build       # production build → .output/chrome-mv3
+pnpm run build:firefox # production build → .output/firefox-mv3
+pnpm run zip         # store-ready zips for both browsers → dist/*.zip
+pnpm run test        # unit tests (vitest)
+pnpm run test:e2e    # end-to-end tests (playwright; requires a prior build)
+pnpm run lint        # eslint
+pnpm run compile     # type-check only (tsc --noEmit)
 ```
 
 ## Architecture (MV3)
